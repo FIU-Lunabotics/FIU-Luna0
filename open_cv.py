@@ -29,12 +29,11 @@ def gstreamer_pipeline(
         )
     )
 
-
 # Open the camera
-capture = cv2.VideoCapture(gstreamer_pipeline(), cv2.CAP_GSTREAMER)
+#capture = cv2.VideoCapture(gstreamer_pipeline(), cv2.CAP_GSTREAMER)
 
 # Code for usb camera
-# capture = cv2.VideoCapture(0)
+capture = cv2.VideoCapture(0)
 
 # Check if the camera opened successfully
 if not capture.isOpened():
