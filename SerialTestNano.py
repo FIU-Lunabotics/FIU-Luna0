@@ -4,7 +4,7 @@ import serial
 import time
 
 arduino = with serial.Serial(
-port = "/dev/ttyACM0",
+port = "/dev/ttyTHS1",
 baudrate = 115200,
 bytesize = serial.EIGHTBITS,
 parity = serial.PARITY_NONE,
@@ -16,7 +16,7 @@ dsrdtr = False,
 writeTimeout = 2
 )
 
-with serial.Serial('/dev/ttyACM0', 9600, timeout=10) as ser:
+with serial.Serial('/dev/ttyTHS1', 9600, timeout=10) as ser:
     while True:
         try:
             ser.write("Command from Jetson|".encode())
@@ -35,7 +35,7 @@ import time
 import sys
 import traceback
 
-def connect_to_arduino(port='/dev/ttyACM0', baudrate=9600, timeout=5):
+def connect_to_arduino(port='/dev/ttyACM0', baudrate=115200, timeout=5):
     """
     Establish a connection with Arduino with robust error handling.
     
@@ -59,6 +59,7 @@ def connect_to_arduino(port='/dev/ttyACM0', baudrate=9600, timeout=5):
         )
         # Give the Arduino time to reset
         time.sleep(2)
+        print("Connected to Arduino")
         return ser
     except serial.SerialException as e:
         print(f"Error connecting to Arduino: {e}")

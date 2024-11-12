@@ -1,3 +1,7 @@
+#include <SoftwareSerial.h>
+
+SoftwareSerial mySerial(0,1);
+
 void setup() {
   //first thing that runs:
   
@@ -17,8 +21,9 @@ void loop() {
     //confirm
     String ackMsg = "This is what I got from the jetson: " + commandFromJetson;
 
-    Serial.print(ackMsg);
+    mySerial.print(ackMsg);
     //Serial.print(commandFromJetson);
+    //serial.flush
   }
   delay(100);
 }
