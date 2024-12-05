@@ -34,7 +34,7 @@ def gstreamer_pipeline(
     )
 
 
-def connect_to_server(host='10.108.116.123', port=8089, max_attempts=5):
+def connect_to_server(host='10.108.238.145', port=8089, max_attempts=5):
     attempt = 0
     while attempt < max_attempts:
         try:
