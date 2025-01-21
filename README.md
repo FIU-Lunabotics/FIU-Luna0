@@ -6,12 +6,12 @@ Programming Tree for FIU Lunabotics Rover
 
 On server (PC which has controller connected to it.) run:
 
-```python
+```bash
 ./controller/server.py
 ```
 
 On client (Nano) run:
 
-```python
+```bash
 ./controller/client.py
 ```
