@@ -1,77 +1,34 @@
 #!/usr/bin/env python3
-from io import BufferedReader
+import pickle
 import socket
-import struct
-import os
 import time
+
+import evdev
+from evdev import events
 
 HOSTNAME = "localhost"
 PORT = 5000
 
-# Joystick event struct byte representation
-EVENT_FORMAT = "llHHi"
-
-
-# change according to current controller
-class EventCodes:
-    EVENT_TYPE_BUTTON = 1
-    EVENT_TYPE_JOYSTICK = 3  # or dpad for some reason
-
-    VALUE_BUTTON_UP = 0
-    VALUE_BUTTON_DOWN = 1
-
-    CODE_LEFT_JOY_HORI = 0
-    CODE_LEFT_JOY_VERT = 1
-    CODE_RIGHT_JOY_HORI = 3
-    CODE_RIGHT_JOY_VERT = 4
-
-    CODE_DPAD_HORI = 16
-    CODE_DPAD_VERT = 17
-
-    CODE_LEFT_TRIGGER = 312
-    CODE_LEFT_BUMPER = 310
-    CODE_RIGHT_TRIGGER = 313
-    CODE_RIGHT_BUMPER = 311
-
-
-class ControllerLostError(BaseException):
-    pass
-
-
-def read_event(device: BufferedReader, event_size: int):
-    try:
-        return device.read(event_size)  # get next event
-    except OSError as err:
-        if err.errno == 19:
-            raise ControllerLostError
-        else:
-            raise err
-
 
 def read_joystick(client_socket: socket.socket):
-    # read raw joystick events from first controller found
-    PATH = "/dev/input/by-id/"
-
-    controller = ""
-    for dev in os.listdir(PATH):
-        if dev.endswith("joystick"):
-            controller = f"{PATH}{dev}"
-
-    if not controller:
+    controller: evdev.InputDevice
+    # select first device with joysticks as controller
+    for path in evdev.list_devices():
+        device = evdev.InputDevice(path)
+        # check if device has axis movement (joysticks)
+        if events.EV_ABS in device.capabilities(absinfo=False):
+            controller = device
+            break
+    else:
         raise FileNotFoundError
 
-    # joystick reading logic from https://stackoverflow.com/questions/5060710/format-of-dev-input-event
-    joystick = open(
-        controller,
-        "rb",
-    )
-
-    print("Controller found.")
-    event_size = struct.calcsize(EVENT_FORMAT)
-    event = read_event(joystick, event_size)
-    while event:
-        client_socket.sendall(event)
-        event = read_event(joystick, event_size)
+    print(f"Controller found: {controller.name}")
+    for event in controller.read_loop():
+        # we do not care about the time of the event, therefore sending this list[int]
+        # instead of an InputEvent takes each pickle from ~104 bytes to 22-23 in tests
+        data = [event.type, event.code, event.value]
+        if sum(data) != 0:  # all-zero events are ignored
+            client_socket.sendall(pickle.dumps(data))
 
 
 def try_handle_client(client_socket: socket.socket):
@@ -82,11 +39,14 @@ def try_handle_client(client_socket: socket.socket):
         except FileNotFoundError:
             if first_fail:
                 print("Controller not found, connect pls.")
-        except ControllerLostError:
-            print("Oops! controller no longer exists, did it disconnect?")
         except BrokenPipeError:
             print("Failed to send controller event, did client disconnect?")
             break
+        except OSError as err:
+            if err.errno == 19:
+                print("Oops! controller no longer exists, did it disconnect?")
+            else:
+                raise
         finally:
             first_fail = False
 

@@ -1,33 +1,54 @@
 #!/usr/bin/env python3
+import pickle
 import socket
-import struct
 import time
+
 import server
-from server import EventCodes
+from evdev import events
+import util
 
 
 def react_to_event(event_type: int, code: int, value: int):
-    if event_type == EventCodes.EVENT_TYPE_BUTTON:
-        if value == EventCodes.VALUE_BUTTON_DOWN:
-            print(f"button pressed: {code}")
-        else:
-            print(f"button released: {code}")
+    if event_type == events.EV_KEY:
+        action = "pressed" if value == 1 else "released"
 
-    if event_type == EventCodes.EVENT_TYPE_JOYSTICK:
-        if code == EventCodes.CODE_LEFT_JOY_HORI:
-            print(f"moved left joystick horizontally: {value}")
-        if code == EventCodes.CODE_LEFT_JOY_VERT:
-            print(f"moved left joystick vertically: {value}")
+        if util.button_north(code):
+            print(f"{action} north button")
+        elif util.button_east(code):
+            print(f"{action} east button")
+        elif util.button_south(code):
+            print(f"{action} south button")
+        elif util.button_west(code):
+            print(f"{action} west button")
+        elif util.button_lbumper(code):
+            print(f"{action} left bumper")
+        elif util.button_rbumper(code):
+            print(f"{action} right bumper")
+        elif util.button_ltrigger(code):
+            print(f"{action} left trigger")
+        elif util.button_rtrigger(code):
+            print(f"{action} right trigger")
+        elif util.button_select(code):
+            print(f"{action} select")
+        elif util.button_start(code):
+            print(f"{action} start")
+    elif event_type == events.EV_ABS:
+        dpad_action = "released" if value == 0 else "pressed"
 
-        if code == EventCodes.CODE_RIGHT_JOY_HORI:
-            print(f"moved right joystick horizontally: {value}")
-        if code == EventCodes.CODE_RIGHT_JOY_VERT:
-            print(f"moved right joystick vertically: {value}")
-
-        if code == EventCodes.CODE_DPAD_HORI:
-            print(f"moved dpad horizontally: {value}")
-        if code == EventCodes.CODE_DPAD_VERT:
-            print(f"moved dpad vertically: {value}")
+        if util.dpad_x(code):
+            print(f"{dpad_action} dpad x {value}")
+        elif util.dpad_y(code):
+            print(f"{dpad_action} dpad y {value}")
+        elif util.joy_left_x(code):
+            print(f"moved left joystick x {value}")
+        elif util.joy_left_y(code):
+            print(f"moved left joystick y {value}")
+        elif util.joy_right_x(code):
+            print(f"moved right joystick x {value}")
+        elif util.joy_right_y(code):
+            print(f"moved right joystick y {value}")
+    else:
+        print("idk bruh")
 
 
 def connect_to_server(client_socket: socket.socket, hostname: str, port: int):
@@ -35,15 +56,15 @@ def connect_to_server(client_socket: socket.socket, hostname: str, port: int):
     Only returns when connection is lost. And therefore should be retried.
     """
     client_socket.connect((hostname, port))
-    print("\nConnected succesfully.")
+    print("\nConnected successfully.")
 
     while True:
-        event = client_socket.recv(struct.calcsize(server.EVENT_FORMAT))
-        if len(event) == 0:  # did not receive any data, server prob closed
+        data = client_socket.recv(1024)
+        if len(data) == 0:  # did not receive any data, server prob closed
             break
 
-        # first two fields are time in seconds, then time in micro seconds
-        (_, _, event_type, code, value) = struct.unpack(server.EVENT_FORMAT, event)
+        event_info: list[int] = pickle.loads(data)
+        [event_type, code, value] = event_info
         react_to_event(event_type, code, value)
 
 
