@@ -56,7 +56,7 @@ def connect_to_server(client_socket: socket.socket, hostname: str, port: int):
     Only returns when connection is lost. And therefore should be retried.
     """
     client_socket.connect((hostname, port))
-    print("\nConnected succesfully.")
+    print("\nConnected successfully.")
 
     while True:
         data = client_socket.recv(1024)
