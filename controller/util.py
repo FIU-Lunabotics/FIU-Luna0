@@ -6,6 +6,8 @@ from evdev import ecodes
 
 # dict keys are gotten from /usr/include/linux/input-event-codes.h
 
+DEFAULT_PORT = 5000
+
 
 def button_north(code: int) -> bool:
     return code == ecodes.ecodes["BTN_NORTH"] or code == ecodes.ecodes["BTN_BASE2"]

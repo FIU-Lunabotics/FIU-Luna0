@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import pickle
 import socket
+import sys
 import time
 
-import server
 from evdev import events
 import util
 
@@ -51,11 +51,11 @@ def react_to_event(event_type: int, code: int, value: int):
         print("idk bruh")
 
 
-def connect_to_server(client_socket: socket.socket, hostname: str, port: int):
+def connect_to_server(client_socket: socket.socket, ip: str, port: int):
     """
     Only returns when connection is lost. And therefore should be retried.
     """
-    client_socket.connect((hostname, port))
+    client_socket.connect((ip, port))
     print("\nConnected successfully.")
 
     while True:
@@ -68,19 +68,52 @@ def connect_to_server(client_socket: socket.socket, hostname: str, port: int):
         react_to_event(event_type, code, value)
 
 
+def print_help():
+    print(f"Usage: {sys.argv[0]} [SERVER_IP]:[PORT] [OPTIONS]")
+    print()
+    print("Options:")
+    print("--help       prints this page")
+
+
 if __name__ == "__main__":
-    print(f"Connecting to {server.HOSTNAME}:{server.PORT} (Press Ctrl+C to stop.)")
+    server_ip = "localhost"
+    server_port = util.DEFAULT_PORT
+    for arg in sys.argv[1:]:
+        if arg == "--help":
+            print("Lunabotics controller client script.")
+            print()
+            print_help()
+            exit(1)
+        elif not arg.startswith("--"):
+            split = arg.split(":")
+            server_ip = split[0]
+            if len(split) > 1:
+                server_port = int(split[1])
+        else:
+            print(f'Unknown option: "{arg}"')
+            print()
+            print_help()
+            exit(1)
+
+    print(f"Connecting to {server_ip}:{server_port} (Press Ctrl+C to stop.)")
     try:
         while True:
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
-                connect_to_server(client_socket, server.HOSTNAME, server.PORT)
+                connect_to_server(client_socket, server_ip, server_port)
                 print("Oops! Connection lost.")
                 client_socket.shutdown(socket.SHUT_RDWR)
             except ConnectionRefusedError:
                 print("Oops, connection was refused, is the server up?")
             except ConnectionResetError:
                 print("Oops, connection reset, did server restart? Trying again.")
+            except socket.gaierror as err:
+                if err.errno == -2:
+                    print(f'Invalid server IP: "{server_ip}"')
+                    print_help()
+                    break
+                else:
+                    raise
             finally:
                 client_socket.close()
             time.sleep(3)
