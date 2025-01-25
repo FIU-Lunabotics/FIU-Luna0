@@ -68,11 +68,18 @@ def connect_to_server(client_socket: socket.socket, ip: str, port: int):
         react_to_event(event_type, code, value)
 
 
-def print_help():
+def fatal_help(message: str):
+    """
+    Prints help with the given message at the top,
+    then exits with error status (1)
+    """
+    print(message)
+    print()
     print(f"Usage: {sys.argv[0]} [SERVER_IP]:[PORT] [OPTIONS]")
     print()
     print("Options:")
     print("--help       prints this page")
+    exit(1)
 
 
 if __name__ == "__main__":
@@ -80,20 +87,17 @@ if __name__ == "__main__":
     server_port = util.DEFAULT_PORT
     for arg in sys.argv[1:]:
         if arg == "--help":
-            print("Lunabotics controller client script.")
-            print()
-            print_help()
-            exit(1)
+            fatal_help("Lunabotics controller client script.")
         elif not arg.startswith("--"):
             split = arg.split(":")
-            server_ip = split[0]
+            if split[0]:  # only set if ip exists, e.g. ignore for input ":2121"
+                server_ip = split[0]
             if len(split) > 1:
+                if not split[1].isdigit():
+                    fatal_help(f'Port "{split[1]}" is not valid in {arg}')
                 server_port = int(split[1])
         else:
-            print(f'Unknown option: "{arg}"')
-            print()
-            print_help()
-            exit(1)
+            fatal_help(f'Unknown option: "{arg}"')
 
     print(f"Connecting to {server_ip}:{server_port} (Press Ctrl+C to stop.)")
     try:
@@ -107,13 +111,9 @@ if __name__ == "__main__":
                 print("Oops, connection was refused, is the server up?")
             except ConnectionResetError:
                 print("Oops, connection reset, did server restart? Trying again.")
-            except socket.gaierror as err:
-                if err.errno == -2:
-                    print(f'Invalid server IP: "{server_ip}"')
-                    print_help()
-                    break
-                else:
-                    raise
+            except socket.gaierror:
+                fatal_help(f'Invalid server IP: "{server_ip}"')
+                break
             finally:
                 client_socket.close()
             time.sleep(3)
