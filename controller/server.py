@@ -4,6 +4,7 @@ import socket
 import time
 
 import evdev
+from evdev import events
 
 HOSTNAME = "localhost"
 PORT = 5000
@@ -15,7 +16,7 @@ def read_joystick(client_socket: socket.socket):
     for path in evdev.list_devices():
         device = evdev.InputDevice(path)
         # check if device has axis movement (joysticks)
-        if evdev.ecodes.EV_ABS in device.capabilities(absinfo=False):  # pyright:ignore
+        if events.EV_ABS in device.capabilities(absinfo=False):
             controller = device
             break
     else:

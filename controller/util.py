@@ -1,4 +1,10 @@
+"""
+simple controller input abstractions
+"""
+
 from evdev import ecodes
+
+# dict keys are gotten from /usr/include/linux/input-event-codes.h
 
 
 def button_north(code: int) -> bool:
