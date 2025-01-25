@@ -69,12 +69,19 @@ def start_server(server_socket: socket.socket, ip: str, port: int):
         try_handle_client(client_socket)
 
 
-def print_help():
+def fatal_help(message: str):
+    """
+    Prints help with the given message at the top,
+    then exits with error status (1)
+    """
+    print(message)
+    print()
     print(f"Usage: {sys.argv[0]} [OPTIONS] [PORT]")
     print()
     print("Options:")
     print("--public     allow external connections")
     print("--help       prints this info")
+    exit(1)
 
 
 if __name__ == "__main__":
@@ -83,23 +90,16 @@ if __name__ == "__main__":
 
     for arg in sys.argv[1:]:
         if arg == "--help":
-            print("Lunabotics server script")
-            print()
-            print_help()
-            exit(1)
+            fatal_help("Lunabotics server script")
         elif arg == "--public":
             ip = "0.0.0.0"  # allows external connections
         elif arg.isdigit():
             if port == DEFAULT_PORT:
                 port = int(arg)
             else:
-                print(f"Cannot set port twice, remove or fix option {arg}")
-                exit(1)
+                fatal_help("Cannot set port twice, remove or fix numbers")
         else:
-            print(f'Unknown option: "{arg}"')
-            print()
-            print_help()
-            exit(1)
+            fatal_help(f'Unknown option: "{arg}"')
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
