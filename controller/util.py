@@ -10,19 +10,19 @@ DEFAULT_PORT = 5000
 
 
 def button_north(code: int) -> bool:
-    return code == ecodes.ecodes["BTN_NORTH"] or code == ecodes.ecodes["BTN_BASE2"]
+    return code == ecodes.ecodes["BTN_NORTH"]
 
 
 def button_east(code: int) -> bool:
-    return code == ecodes.ecodes["BTN_EAST"] or code == ecodes.ecodes["BTN_BASE3"]
+    return code == ecodes.ecodes["BTN_EAST"]
 
 
 def button_south(code: int) -> bool:
-    return code == ecodes.ecodes["BTN_SOUTH"] or code == ecodes.ecodes["BTN_BASE4"]
+    return code == ecodes.ecodes["BTN_SOUTH"]
 
 
 def button_west(code: int) -> bool:
-    return code == ecodes.ecodes["BTN_WEST"] or code == ecodes.ecodes["BTN_BASE5"]
+    return code == ecodes.ecodes["BTN_WEST"]
 
 
 def button_lbumper(code: int) -> bool:
@@ -66,12 +66,16 @@ def joy_left_y(code: int) -> bool:
 
 
 def joy_right_x(code: int) -> bool:
-    # TODO: snakebyte controller uses the Z's for right joystick, but my off-brand
-    # sony one at home uses Z's for triggers so maybe make this swappable?
-    return code == ecodes.ecodes["ABS_RX"] or code == ecodes.ecodes["ABS_Z"]
+    return code == ecodes.ecodes["ABS_RX"]
 
 
 def joy_right_y(code: int) -> bool:
-    # TODO: snakebyte controller uses the Z's for right joystick, but my off-brand
-    # sony one at home uses Z's for triggers so maybe make this swappable?
-    return code == ecodes.ecodes["ABS_RY"] or code == ecodes.ecodes["ABS_RZ"]
+    return code == ecodes.ecodes["ABS_RY"]
+
+
+def pressure_ltrigger(code: int) -> bool:
+    return code == ecodes.ecodes["ABS_Z"]
+
+
+def pressure_rtrigger(code: int) -> bool:
+    return code == ecodes.ecodes["ABS_RZ"]
