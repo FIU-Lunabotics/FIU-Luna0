@@ -26,8 +26,10 @@ def read_joystick(client_socket: socket.socket):
     for event in controller.read_loop():
         # we do not care about the time of the event, therefore sending this list[int]
         # instead of an InputEvent takes each pickle from ~104 bytes to 22-23 in tests
-        data = [event.type, event.code, event.value]
-        if sum(data) != 0:  # all-zero events are ignored
+        data = (event.type, event.code, event.value)
+        if (  # all-zero events and event types 2 and 4 are ignored.
+            sum(data) != 0 and event.type % 2 != 0
+        ):
             client_socket.sendall(pickle.dumps(data))
 
 
