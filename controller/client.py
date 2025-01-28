@@ -63,8 +63,7 @@ def connect_to_server(client_socket: socket.socket, hostname: str, port: int):
         if len(data) == 0:  # did not receive any data, server prob closed
             break
 
-        event_info: list[int] = pickle.loads(data)
-        [event_type, code, value] = event_info
+        (event_type, code, value) = pickle.loads(data)
         react_to_event(event_type, code, value)
 
 
