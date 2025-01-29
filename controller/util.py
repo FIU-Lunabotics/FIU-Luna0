@@ -3,10 +3,36 @@ simple controller input abstractions
 """
 
 from evdev import ecodes
+import os
+import logging
 
 # dict keys are gotten from /usr/include/linux/input-event-codes.h
 
 DEFAULT_PORT = 5000
+
+
+def init_logger() -> logging.Logger:
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+
+    try:
+        log_level = getattr(logging, log_level)
+    except AttributeError:
+        log_level = logging.INFO
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(log_level)
+
+    handler = logging.StreamHandler()
+    handler.setLevel(log_level)
+
+    formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)s", datefmt="%H:%M:%S"
+    )
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+
+    return logger
 
 
 def button_north(code: int) -> bool:

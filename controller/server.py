@@ -7,7 +7,10 @@ import time
 import evdev
 from evdev import events
 
+import util
 from util import DEFAULT_PORT
+
+logger = util.init_logger()
 
 
 def read_joystick(client_socket: socket.socket):
@@ -22,7 +25,7 @@ def read_joystick(client_socket: socket.socket):
     else:
         raise FileNotFoundError
 
-    print(f"Controller found: {controller.name}")
+    logger.info(f"Controller found: {controller.name}")
     for event in controller.read_loop():
         # we do not care about the time of the event, therefore sending this list[int]
         # instead of an InputEvent takes each pickle from ~104 bytes to 22-23 in tests
@@ -40,13 +43,13 @@ def try_handle_client(client_socket: socket.socket):
             read_joystick(client_socket)
         except FileNotFoundError:
             if first_fail:
-                print("Controller not found, connect pls.")
+                logger.warning("Controller not found, connect pls.")
         except BrokenPipeError:
-            print("Failed to send controller event, did client disconnect?")
+            logger.error("Failed to send controller event, did client disconnect?")
             break
         except OSError as err:
             if err.errno == 19:
-                print("Oops! controller no longer exists, did it disconnect?")
+                logger.warning("Oops! controller no longer exists, did it disconnect?")
             else:
                 raise
         finally:
@@ -67,7 +70,7 @@ def start_server(server_socket: socket.socket, ip: str, port: int):
     print("Press Ctrl+C to stop.")
     while True:
         client_socket, (client_ip, client_port) = server_socket.accept()
-        print(f"\nNew connection from {client_ip}:{client_port}")
+        logger.info(f"New connection from {client_ip}:{client_port}")
         try_handle_client(client_socket)
 
 
@@ -109,4 +112,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         server_socket.shutdown(socket.SHUT_RDWR)
         server_socket.close()
-        print("\nFinished gracefully.")
+        print("Finished gracefully.")

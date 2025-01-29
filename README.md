@@ -25,13 +25,17 @@ pip install --user -r requirements.txt
 On server (PC which has controller connected to it.) run:
 
 ```bash
-./controller/server.py --public
+DEBUG_LEVEL=INFO ./controller/server.py --public
 ```
 
 On client (Nano) run:
 
 ```bash
-./controller/client.py [SERVER_IP]
+DEBUG_LEVEL=INFO  ./controller/client.py [SERVER_IP]
 ```
+
+> [!NOTE]  
+> When in development, you can set different logging levels in `.env` by
+> prefixing the commands above with `DEBUG_LEVEL=INFO`
 
 To see all available options, both scripts support `--help`.
