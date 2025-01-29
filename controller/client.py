@@ -7,48 +7,50 @@ import time
 from evdev import events
 import util
 
+logger = util.init_logger()
+
 
 def react_to_event(event_type: int, code: int, value: int):
     if event_type == events.EV_KEY:
         action = "pressed" if value == 1 else "released"
 
         if util.button_north(code):
-            print(f"{action} north button")
+            logger.info(f"{action} north button")
         elif util.button_east(code):
-            print(f"{action} east button")
+            logger.info(f"{action} east button")
         elif util.button_south(code):
-            print(f"{action} south button")
+            logger.info(f"{action} south button")
         elif util.button_west(code):
-            print(f"{action} west button")
+            logger.info(f"{action} west button")
         elif util.button_lbumper(code):
-            print(f"{action} left bumper")
+            logger.info(f"{action} left bumper")
         elif util.button_rbumper(code):
-            print(f"{action} right bumper")
+            logger.info(f"{action} right bumper")
         elif util.button_ltrigger(code):
-            print(f"{action} left trigger")
+            logger.info(f"{action} left trigger")
         elif util.button_rtrigger(code):
-            print(f"{action} right trigger")
+            logger.info(f"{action} right trigger")
         elif util.button_select(code):
-            print(f"{action} select")
+            logger.info(f"{action} select")
         elif util.button_start(code):
-            print(f"{action} start")
+            logger.info(f"{action} start")
     elif event_type == events.EV_ABS:
         dpad_action = "released" if value == 0 else "pressed"
 
         if util.dpad_x(code):
-            print(f"{dpad_action} dpad x {value}")
+            logger.info(f"{dpad_action} dpad x {value}")
         elif util.dpad_y(code):
-            print(f"{dpad_action} dpad y {value}")
+            logger.info(f"{dpad_action} dpad y {value}")
         elif util.joy_left_x(code):
-            print(f"moved left joystick x {value}")
+            logger.info(f"moved left joystick x {value}")
         elif util.joy_left_y(code):
-            print(f"moved left joystick y {value}")
+            logger.info(f"moved left joystick y {value}")
         elif util.joy_right_x(code):
-            print(f"moved right joystick x {value}")
+            logger.info(f"moved right joystick x {value}")
         elif util.joy_right_y(code):
-            print(f"moved right joystick y {value}")
+            logger.info(f"moved right joystick y {value}")
     else:
-        print("idk bruh")
+        logger.info("idk bruh")
 
 
 def connect_to_server(client_socket: socket.socket, ip: str, port: int):
@@ -56,7 +58,7 @@ def connect_to_server(client_socket: socket.socket, ip: str, port: int):
     Only returns when connection is lost. And therefore should be retried.
     """
     client_socket.connect((ip, port))
-    print("\nConnected successfully.")
+    logger.info("Connected successfully.")
 
     while True:
         data = client_socket.recv(1024)
@@ -104,12 +106,14 @@ if __name__ == "__main__":
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 connect_to_server(client_socket, server_ip, server_port)
-                print("Oops! Connection lost.")
+                logger.warning("Oops! Connection lost.")
                 client_socket.shutdown(socket.SHUT_RDWR)
             except ConnectionRefusedError:
-                print("Oops, connection was refused, is the server up?")
+                logger.warning("Oops, connection was refused, is the server up?")
             except ConnectionResetError:
-                print("Oops, connection reset, did server restart? Trying again.")
+                logger.warning(
+                    "Oops, connection reset, did server restart? Trying again."
+                )
             except socket.gaierror:
                 fatal_help(f'Invalid server IP: "{server_ip}"')
                 break
