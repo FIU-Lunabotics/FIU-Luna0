@@ -4,49 +4,49 @@ import socket
 import sys
 import time
 
-from evdev import events
+from event import AxisEvent, ButtonEvent
 import util
 
 
-def react_to_event(event_type: int, code: int, value: int):
-    if event_type == events.EV_KEY:
-        action = "pressed" if value == 1 else "released"
+def react_to_event(event: AxisEvent | ButtonEvent):
+    if type(event) is AxisEvent:
+        dpad_action = "released" if event.value() == 0 else "pressed"
 
-        if util.button_north(code):
+        if event.dpad_x():
+            print(f"{dpad_action} dpad x {event.value()}")
+        elif event.dpad_y():
+            print(f"{dpad_action} dpad y {event.value()}")
+        elif event.joy_left_x():
+            print(f"moved left joystick x {event.value()}")
+        elif event.joy_left_y():
+            print(f"moved left joystick y {event.value()}")
+        elif event.joy_right_x():
+            print(f"moved right joystick x {event.value()}")
+        elif event.joy_right_y():
+            print(f"moved right joystick y {event.value()}")
+    elif type(event) is ButtonEvent:
+        action = "pressed" if event._value == 1 else "released"
+
+        if event.button_north():
             print(f"{action} north button")
-        elif util.button_east(code):
+        elif event.button_east():
             print(f"{action} east button")
-        elif util.button_south(code):
+        elif event.button_south():
             print(f"{action} south button")
-        elif util.button_west(code):
+        elif event.button_west():
             print(f"{action} west button")
-        elif util.button_lbumper(code):
+        elif event.button_lbumper():
             print(f"{action} left bumper")
-        elif util.button_rbumper(code):
+        elif event.button_rbumper():
             print(f"{action} right bumper")
-        elif util.button_ltrigger(code):
+        elif event.button_ltrigger():
             print(f"{action} left trigger")
-        elif util.button_rtrigger(code):
+        elif event.button_rtrigger():
             print(f"{action} right trigger")
-        elif util.button_select(code):
+        elif event.button_select():
             print(f"{action} select")
-        elif util.button_start(code):
+        elif event.button_start():
             print(f"{action} start")
-    elif event_type == events.EV_ABS:
-        dpad_action = "released" if value == 0 else "pressed"
-
-        if util.dpad_x(code):
-            print(f"{dpad_action} dpad x {value}")
-        elif util.dpad_y(code):
-            print(f"{dpad_action} dpad y {value}")
-        elif util.joy_left_x(code):
-            print(f"moved left joystick x {value}")
-        elif util.joy_left_y(code):
-            print(f"moved left joystick y {value}")
-        elif util.joy_right_x(code):
-            print(f"moved right joystick x {value}")
-        elif util.joy_right_y(code):
-            print(f"moved right joystick y {value}")
     else:
         print("idk bruh")
 
@@ -63,8 +63,9 @@ def connect_to_server(client_socket: socket.socket, ip: str, port: int):
         if len(data) == 0:  # did not receive any data, server prob closed
             break
 
-        (event_type, code, value) = pickle.loads(data)
-        react_to_event(event_type, code, value)
+        print(f"len: {len(data)}")
+        event = pickle.loads(data)
+        react_to_event(event)
 
 
 def fatal_help(message: str):
