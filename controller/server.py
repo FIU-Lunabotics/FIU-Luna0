@@ -7,6 +7,7 @@ import time
 import evdev
 from evdev import events
 
+from event import AxisEvent, ButtonEvent
 from util import DEFAULT_PORT
 
 
@@ -16,21 +17,27 @@ def read_joystick(client_socket: socket.socket):
     for path in evdev.list_devices():
         device = evdev.InputDevice(path)
         # check if device has axis movement (joysticks)
-        if events.EV_ABS in device.capabilities(absinfo=False):
+        capabilities = device.capabilities(absinfo=False)
+        if events.EV_ABS in capabilities and events.EV_KEY in capabilities:
             controller = device
             break
     else:
         raise FileNotFoundError
 
     print(f"Controller found: {controller.name}")
+
+    axis_info = controller.capabilities(absinfo=True)[events.EV_ABS]
     for event in controller.read_loop():
         # we do not care about the time of the event, therefore sending this list[int]
         # instead of an InputEvent takes each pickle from ~104 bytes to 22-23 in tests
-        data = (event.type, event.code, event.value)
-        if (  # all-zero events and event types 2 and 4 are ignored.
-            sum(data) != 0 and event.type % 2 != 0
-        ):
-            client_socket.sendall(pickle.dumps(data))
+        if event.type == events.EV_ABS:
+            event = AxisEvent(event.code, event.value, axis_info)  # type:ignore
+        elif event.type == events.EV_KEY:
+            event = ButtonEvent(event.code, event.value)
+        else:
+            continue
+
+        client_socket.sendall(pickle.dumps(event))
 
 
 def try_handle_client(client_socket: socket.socket):
