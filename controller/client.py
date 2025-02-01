@@ -10,7 +10,7 @@ import util
 
 def react_to_event(event: AxisEvent | ButtonEvent):
     if type(event) is AxisEvent:
-        dpad_action = "released" if event.value() == 0 else "pressed"
+        dpad_action = "released" if event.value() == 1 else "pressed"
 
         if event.dpad_x():
             print(f"{dpad_action} dpad x {event.value()}")
@@ -25,7 +25,7 @@ def react_to_event(event: AxisEvent | ButtonEvent):
         elif event.joy_right_y():
             print(f"moved right joystick y {event.value()}")
     elif type(event) is ButtonEvent:
-        action = "pressed" if event._value == 1 else "released"
+        action = "pressed" if event.value() == 1 else "released"
 
         if event.button_north():
             print(f"{action} north button")
