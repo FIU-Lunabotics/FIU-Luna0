@@ -1,0 +1,13 @@
+{
+  "name": "Lunabotics Development (Matches Pi 5 Environment)",
+  "build": {
+    "dockerfile": "../Dockerfile"
+  },
+  "workspaceFolder": "/app",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": ["ms-azuretools.vscode-docker", "mesonbuild.mesonbuild"],
+  "forwardPorts": [8080],
+  "postCreateCommand": "/bin/bash"
+}

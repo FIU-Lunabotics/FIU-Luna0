@@ -1,37 +1,47 @@
-# FIU_Lunabotics :D
-
-Programming Tree for FIU Lunabotics Rover
+# Luna0
 
 ## Setup
 
-Make sure you have:
-
-- Linux is required, the controller code uses Linux's native [evdev interface](https://en.wikipedia.org/wiki/Evdev).
-- Either `pip` or manually installed the requirements from your distro.
-
-### Pip
-
-- Install `python3-pip` (or equiv.), if too old, do
-  `pip3 install --upgrade pip` after.
-
-Then run:
+### Local
 
 ```bash
-pip install --user -r requirements.txt
+meson setup build
+ninja -C build
 ```
+
+> [!NOTE]
+> For protobuf compilation remove all files in `proto` with the exception of `luna.proto` and run:
+> `protoc -I . --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc="{{/path/to/grpc_cpp_plugin}}" proto/luna.proto`
+
+### Container
+
+> [!NOTE]
+> For development, container usage is preferred, unclear if ports or Bluetooth will be an issue at this time.
+> End result will be a local build on both client and server at competition.
+
+#### Docker Images
+
+If you would like to just run through Docker
+
+```bash
+docker build -t luna .
+docker run -it luna /bin/bash
+```
+
+Once the image is built and running:
+
+```bash
+meson setup build
+ninja -C build
+```
+
+#### Run Dev Container
+
+On Linux, run `./run_dev_container.sh`. On Windows, right-click and run `run_dev_container.bat`. For this script you will need:
+
+- Visual Studio Code
+- [Dev Container Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
 ## Running
 
-On server (PC which has controller connected to it.) run:
-
-```bash
-./controller/server.py --public
-```
-
-On client (Nano) run:
-
-```bash
-./controller/client.py [SERVER_IP]
-```
-
-To see all available options, both scripts support `--help`.
+<!-- TODO: idek bruh u got this tho -->
