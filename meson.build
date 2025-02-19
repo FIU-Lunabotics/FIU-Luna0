@@ -24,9 +24,9 @@ proto_target = custom_target(
   ],
   command: [
     protoc,
-    '--proto_path=../',
-    '--grpc_out=../',
-    '--cpp_out=../',
+    '--proto_path=../proto',
+    '--grpc_out=.',
+    '--cpp_out=.',
     '--plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin',
     '@INPUT@',
   ],
@@ -42,15 +42,7 @@ luna_proto_dep = declare_dependency(
   include_directories: proto_inc
 )
 
-sources = [
-  'src/main.cpp',
-  'src/network/client.cpp',
-  'src/network/server.cpp',
-  'src/controller/controller.cpp',
-  'src/utils/utils.cpp'
-]
-
-dependencies = [
+shared_dependencies = [
   boost_dep,
   protobuf_dep,
   grpc_dep,
@@ -58,10 +50,39 @@ dependencies = [
   luna_proto_dep,
 ]
 
+# server details
+server_sources = [
+  'src/server.cpp',
+  'src/network/network.cpp',
+  'src/controller/controller.cpp',
+  'src/utils/utils.cpp'
+]
+
+server_dependencies = shared_dependencies + []
+
+# client details
+client_sources = [
+  'src/client.cpp',
+  'src/network/network.cpp',
+  'src/controller/controller.cpp',
+  'src/utils/utils.cpp'
+]
+
+client_dependencies = shared_dependencies + []
+
+## executables
 executable(
-  'luna',
-  sources: sources,
-  dependencies: dependencies,
+  'client',
+  sources: client_sources,
+  dependencies: client_dependencies,
+  include_directories: include_directories('src'),
+  install: false,
+)
+
+executable(
+  'server',
+  sources: server_sources,
+  dependencies: server_dependencies,
   include_directories: include_directories('src'),
   install: false,
 )

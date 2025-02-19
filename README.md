@@ -9,10 +9,6 @@ meson setup build
 ninja -C build
 ```
 
-> [!NOTE]
-> For protobuf compilation remove all files in `proto` with the exception of `luna.proto` and run:
-> `protoc -I . --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc="{{/path/to/grpc_cpp_plugin}}" proto/luna.proto`
-
 ### Container
 
 > [!NOTE]
