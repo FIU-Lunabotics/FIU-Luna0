@@ -1,37 +1,65 @@
-# FIU_Lunabotics :D
+# Luna0
 
-Programming Tree for FIU Lunabotics Rover
+Lunabotics rover code using [ROS2] Jazzy in C++
 
-## Setup
+## Building
 
-Make sure you have:
+> [!WARNING]
+> You will need to [install ROS2] Jazzy (or use the ROS docker image
+> and build a dev container).
 
-- Linux is required, the controller code uses Linux's native [evdev interface](https://en.wikipedia.org/wiki/Evdev).
-- Either `pip` or manually installed the requirements from your distro.
-
-### Pip
-
-- Install `python3-pip` (or equiv.), if too old, do
-  `pip3 install --upgrade pip` after.
-
-Then run:
+At this repository root, run:
 
 ```bash
-pip install --user -r requirements.txt
+colcon build
 ```
 
-## Running
-
-On server (PC which has controller connected to it.) run:
+Which will compile the packages and nodes we have, and give you a source-able
+script in `./install` (change file name for your shell if needed):
 
 ```bash
-./controller/server.py --public
+source install/local_setup.bash
 ```
 
-On client (Nano) run:
+Then, to run you use the syntax:
 
 ```bash
-./controller/client.py [SERVER_IP]
+ros2 run luna_controller controller_client
 ```
 
-To see all available options, both scripts support `--help`.
+Where that is `ros2 run <package> <node>`. You can see all available packages
+and nodes like so:
+
+```bash
+ros2 pkg executables | grep luna
+```
+
+## Development
+
+> [!NOTE]
+> For development, container usage is preferred, unclear if ports or Bluetooth
+> will be an issue at this time. End result will be a local build on both
+> client and server at competition.
+
+### Docker Images
+
+If you would like to just run through Docker
+
+```bash
+docker build -t luna .
+docker run -it luna /bin/bash
+```
+
+Once the image is built and running follow the [building] steps.
+
+### Run Dev Container
+
+On Linux, run `./run_dev_container.sh`. On Windows, right-click and run
+`run_dev_container.bat`. For this script you will need:
+
+- Visual Studio Code
+- [Dev Container Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+[ROS2]: https://wiki.ros.org/ROS/Introduction
+[install ROS2]: https://docs.ros.org/en/jazzy/Installation.html
+[building]: #building
