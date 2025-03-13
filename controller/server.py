@@ -8,7 +8,7 @@ import evdev
 from evdev import events
 
 from event import AxisEvent, ButtonEvent
-from util import DEFAULT_PORT
+from util import COALESCE_MS, DEFAULT_PORT
 
 
 def read_joystick(client_socket: socket.socket):
@@ -27,10 +27,11 @@ def read_joystick(client_socket: socket.socket):
     print(f"Controller found: {controller.name}")
 
     axis_info = controller.capabilities(absinfo=True)[events.EV_ABS]
+    last_abs_usec = 0  # use to ignore absolute events that happen too quick
     for event in controller.read_loop():
-        # we do not care about the time of the event, therefore sending this list[int]
-        # instead of an InputEvent takes each pickle from ~104 bytes to 22-23 in tests
-        if event.type == events.EV_ABS:
+        if event.type == events.EV_ABS and (
+            event.usec > last_abs_usec + COALESCE_MS or event.usec < last_abs_usec
+        ):
             event = AxisEvent(event.code, event.value, axis_info)  # type:ignore
         elif event.type == events.EV_KEY:
             event = ButtonEvent(event.code, event.value)
