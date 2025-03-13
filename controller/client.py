@@ -9,6 +9,7 @@ import util
 
 
 def react_to_event(event: AxisEvent | ButtonEvent):
+    print(event._code)
     if type(event) is AxisEvent:
         dpad_action = "released" if event.value() == 1 else "pressed"
 
@@ -24,6 +25,10 @@ def react_to_event(event: AxisEvent | ButtonEvent):
             print(f"moved right joystick x {event.value()}")
         elif event.joy_right_y():
             print(f"moved right joystick y {event.value()}")
+        elif event.pressure_ltrigger():
+            print(f"moved left trigger pressure {event.value()}")
+        elif event.pressure_rtrigger():
+            print(f"moved right trigger pressure {event.value()}")
     elif type(event) is ButtonEvent:
         action = "pressed" if event.value() == 1 else "released"
 
@@ -63,7 +68,6 @@ def connect_to_server(client_socket: socket.socket, ip: str, port: int):
         if len(data) == 0:  # did not receive any data, server prob closed
             break
 
-        print(f"len: {len(data)}")
         event = pickle.loads(data)
         react_to_event(event)
 

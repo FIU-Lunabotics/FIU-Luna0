@@ -12,20 +12,31 @@ class AxisEvent:
     def __init__(
         self, code: int, value: int, axis_info: list[Tuple[int, AbsInfo]]
     ) -> None:
+        """
+        Converts the given data into a normalized axis event, giving values only
+        from 0 to 255.
+        """
         normalized: float
         for axis, info in axis_info:
+            min = info.min
+            max = info.max
+
+            if min < 0:
+                min += abs(info.min)
+                max += min
+
             if axis == code:
-                normalized = (value - info.min) / (info.max - info.min)
+                normalized = (value / max) * 255
                 break
         else:
             raise IndexError(f"No info available for axis {code}?")
 
-        self._value = (normalized * 2) - 1
+        self._value = int(normalized)
         self._code = code
 
     def value(self) -> float:
         """
-        Returns a value from -1.0 to 1.0, 0 being the center.
+        Returns a value from 0 to 255, 127 being the center.
         """
         return self._value
 
@@ -42,16 +53,16 @@ class AxisEvent:
         return self._code == ecodes.ecodes["ABS_Y"]
 
     def joy_right_x(self) -> bool:
-        return self._code == ecodes.ecodes["ABS_RX"]
-
-    def joy_right_y(self) -> bool:
-        return self._code == ecodes.ecodes["ABS_RY"]
-
-    def pressure_ltrigger(self) -> bool:
         return self._code == ecodes.ecodes["ABS_Z"]
 
-    def pressure_rtrigger(self) -> bool:
+    def joy_right_y(self) -> bool:
         return self._code == ecodes.ecodes["ABS_RZ"]
+
+    def pressure_ltrigger(self) -> bool:
+        return self._code == ecodes.ecodes["ABS_BRAKE"]
+
+    def pressure_rtrigger(self) -> bool:
+        return self._code == ecodes.ecodes["ABS_GAS"]
 
 
 class ButtonEvent:
