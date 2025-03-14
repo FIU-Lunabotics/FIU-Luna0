@@ -1,66 +1,68 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import pickle
 import socket
 import sys
-import time
 
-import evdev
-from evdev import events
-
+import util
 from event import AxisEvent, ButtonEvent
-from util import COALESCE_MS, DEFAULT_PORT
 
 
-def read_joystick(client_socket: socket.socket):
-    controller: evdev.InputDevice
-    # select first device with joysticks as controller
-    for path in evdev.list_devices():
-        device = evdev.InputDevice(path)
-        # check if device has axis movement (joysticks)
-        capabilities = device.capabilities(absinfo=False)
-        if events.EV_ABS in capabilities and events.EV_KEY in capabilities:
-            controller = device
-            break
+def react_to_event(event: AxisEvent | ButtonEvent):
+    print(event._code)
+    if type(event) is AxisEvent:
+        dpad_action = "released" if event.value() == 1 else "pressed"
+
+        if event.dpad_x():
+            print(f"{dpad_action} dpad x {event.value()}")
+        elif event.dpad_y():
+            print(f"{dpad_action} dpad y {event.value()}")
+        elif event.joy_left_x():
+            print(f"moved left joystick x {event.value()}")
+        elif event.joy_left_y():
+            print(f"moved left joystick y {event.value()}")
+        elif event.joy_right_x():
+            print(f"moved right joystick x {event.value()}")
+        elif event.joy_right_y():
+            print(f"moved right joystick y {event.value()}")
+        elif event.pressure_ltrigger():
+            print(f"moved left trigger pressure {event.value()}")
+        elif event.pressure_rtrigger():
+            print(f"moved right trigger pressure {event.value()}")
+    elif type(event) is ButtonEvent:
+        action = "pressed" if event.value() == 1 else "released"
+
+        if event.button_north():
+            print(f"{action} north button")
+        elif event.button_east():
+            print(f"{action} east button")
+        elif event.button_south():
+            print(f"{action} south button")
+        elif event.button_west():
+            print(f"{action} west button")
+        elif event.button_lbumper():
+            print(f"{action} left bumper")
+        elif event.button_rbumper():
+            print(f"{action} right bumper")
+        elif event.button_ltrigger():
+            print(f"{action} left trigger")
+        elif event.button_rtrigger():
+            print(f"{action} right trigger")
+        elif event.button_select():
+            print(f"{action} select")
+        elif event.button_start():
+            print(f"{action} start")
     else:
-        raise FileNotFoundError
-
-    print(f"Controller found: {controller.name}")
-
-    axis_info = controller.capabilities(absinfo=True)[events.EV_ABS]
-    last_abs_usec = 0  # use to ignore absolute events that happen too quick
-    for event in controller.read_loop():
-        if event.type == events.EV_ABS and (
-            event.usec > last_abs_usec + COALESCE_MS or event.usec < last_abs_usec
-        ):
-            event = AxisEvent(event.code, event.value, axis_info)  # type:ignore
-        elif event.type == events.EV_KEY:
-            event = ButtonEvent(event.code, event.value)
-        else:
-            continue
-
-        client_socket.sendall(pickle.dumps(event))
+        print("idk bruh")
 
 
 def try_handle_client(client_socket: socket.socket):
-    first_fail = True
-    while True:  # preferred over recursively calling to avoid stack overflow
-        try:
-            read_joystick(client_socket)
-        except FileNotFoundError:
-            if first_fail:
-                print("Controller not found, connect pls.")
-        except BrokenPipeError:
-            print("Failed to send controller event, did client disconnect?")
+    while True:
+        data = client_socket.recv(1024)
+        if len(data) == 0:  # did not receive any data, server prob closed
             break
-        except OSError as err:
-            if err.errno == 19:
-                print("Oops! controller no longer exists, did it disconnect?")
-            else:
-                raise
-        finally:
-            first_fail = False
 
-        time.sleep(2)
+        event = pickle.loads(data)
+        react_to_event(event)
 
 
 def start_server(server_socket: socket.socket, ip: str, port: int):
@@ -96,7 +98,7 @@ def fatal_help(message: str):
 
 if __name__ == "__main__":
     ip = "localhost"
-    port = DEFAULT_PORT
+    port = util.DEFAULT_PORT
 
     for arg in sys.argv[1:]:
         if arg == "--help":
@@ -104,7 +106,7 @@ if __name__ == "__main__":
         elif arg == "--public":
             ip = "0.0.0.0"  # allows external connections
         elif arg.isdigit():
-            if port == DEFAULT_PORT:
+            if port == util.DEFAULT_PORT:
                 port = int(arg)
             else:
                 fatal_help("Cannot set port twice, remove or fix numbers")
