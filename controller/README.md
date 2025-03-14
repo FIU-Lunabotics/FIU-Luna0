@@ -1,8 +1,8 @@
 # Architecture
 
-The focus is on having the server carry the grunt of work if possible
-(gathering controller events, converting them to normalized ones, etc.) and
-having the client (our dinky Nano) be more of a relay.
+We will have the server (our Raspberry Pi) collecting info from a controller
+client (some laptop) then handles it and sends it to the Arduinos controlling
+our motors and more.
 
 ## `server.py`
 
@@ -12,16 +12,19 @@ To configure and see usage run:
 server.py --help
 ```
 
-### Read / Process
+### Collect
 
-- Controller events from evdev
-- Controller config (deadzone, button layout)
+- From client
+  - Receive Axis and Button events
+- From camera (TODO)
+  - Get stream
 
-### Send
+### Disperse
 
-- Connect to client
-- Send standardized Axis and Button events
-  [serialized](https://en.wikipedia.org/wiki/Serialization) through pickle
+- To client (TODO)
+  - Camera data
+- To Arduinos (TODO)
+  - Events converted into PWM?
 
 ## `client.py`
 
@@ -31,16 +34,13 @@ To configure server IP/port and see usage run:
 client.py --help
 ```
 
-### Collect
+### Read / Process
 
-- From server
-  - Receive Axis and Button events
-- From camera (TODO)
-  - Get stream
+- Controller events from evdev
+- Controller config (deadzone, button layout) (maybe)
 
-### Disperse
+### Send
 
-- To server (TODO)
-  - Camera data
-- To Arduinos (TODO)
-  - Events converted into PWM?
+- To server
+  - Send standardized Axis and Button events
+    [serialized](https://en.wikipedia.org/wiki/Serialization) through pickle
