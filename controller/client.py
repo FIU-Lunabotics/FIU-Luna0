@@ -1,70 +1,74 @@
 #!/usr/bin/env python3
-import pickle
 import socket
 import sys
 import time
+import pickle
 
+import evdev
 from evdev import events
+
 import util
+from util import COALESCE_MS
+from event import AxisEvent, ButtonEvent
 
 
-def react_to_event(event_type: int, code: int, value: int):
-    if event_type == events.EV_KEY:
-        action = "pressed" if value == 1 else "released"
-
-        if util.button_north(code):
-            print(f"{action} north button")
-        elif util.button_east(code):
-            print(f"{action} east button")
-        elif util.button_south(code):
-            print(f"{action} south button")
-        elif util.button_west(code):
-            print(f"{action} west button")
-        elif util.button_lbumper(code):
-            print(f"{action} left bumper")
-        elif util.button_rbumper(code):
-            print(f"{action} right bumper")
-        elif util.button_ltrigger(code):
-            print(f"{action} left trigger")
-        elif util.button_rtrigger(code):
-            print(f"{action} right trigger")
-        elif util.button_select(code):
-            print(f"{action} select")
-        elif util.button_start(code):
-            print(f"{action} start")
-    elif event_type == events.EV_ABS:
-        dpad_action = "released" if value == 0 else "pressed"
-
-        if util.dpad_x(code):
-            print(f"{dpad_action} dpad x {value}")
-        elif util.dpad_y(code):
-            print(f"{dpad_action} dpad y {value}")
-        elif util.joy_left_x(code):
-            print(f"moved left joystick x {value}")
-        elif util.joy_left_y(code):
-            print(f"moved left joystick y {value}")
-        elif util.joy_right_x(code):
-            print(f"moved right joystick x {value}")
-        elif util.joy_right_y(code):
-            print(f"moved right joystick y {value}")
+def read_joystick(c_socket: socket.socket):
+    controller: evdev.InputDevice
+    # select first device with joysticks as controller
+    for path in evdev.list_devices():
+        device = evdev.InputDevice(path)
+        # check if device has axis movement (joysticks)
+        capabilities = device.capabilities(absinfo=False)
+        if events.EV_ABS in capabilities and events.EV_KEY in capabilities:
+            controller = device
+            break
     else:
-        print("idk bruh")
+        raise FileNotFoundError
+
+    print(f"Controller found: {controller.name}")
+
+    axis_info = controller.capabilities(absinfo=True)[events.EV_ABS]
+    last_abs_usec = 0  # use to ignore absolute events that happen too quick
+    for event in controller.read_loop():
+        if event.type == events.EV_ABS and (
+            event.usec > last_abs_usec + COALESCE_MS or event.usec < last_abs_usec
+        ):
+            event = AxisEvent(event.code, event.value, axis_info)  # type:ignore
+        elif event.type == events.EV_KEY:
+            event = ButtonEvent(event.code, event.value)
+        else:
+            continue
+
+        c_socket.sendall(pickle.dumps(event))
 
 
-def connect_to_server(client_socket: socket.socket, ip: str, port: int):
+def connect_to_server(c_socket: socket.socket, ip: str, port: int):
     """
     Only returns when connection is lost. And therefore should be retried.
     """
-    client_socket.connect((ip, port))
+    c_socket.connect((ip, port))
     print("\nConnected successfully.")
 
-    while True:
-        data = client_socket.recv(1024)
-        if len(data) == 0:  # did not receive any data, server prob closed
+    # read (and send) controller input endlessly
+    first_fail = True
+    while True:  # preferred over recursively calling to avoid stack overflow
+        try:
+            read_joystick(c_socket)
+        except FileNotFoundError:
+            if first_fail:
+                print("Controller not found, connect pls.")
+        except BrokenPipeError:
+            print("Failed to send controller event, did client disconnect?")
             break
+        except OSError as err:
+            if err.errno == 19:
+                print("Oops! controller no longer exists, did it disconnect?")
+            else:
+                raise
+        finally:
+            first_fail = False
 
-        (event_type, code, value) = pickle.loads(data)
-        react_to_event(event_type, code, value)
+        time.sleep(2)
 
 
 def fatal_help(message: str):
@@ -84,6 +88,7 @@ def fatal_help(message: str):
 if __name__ == "__main__":
     server_ip = "localhost"
     server_port = util.DEFAULT_PORT
+
     for arg in sys.argv[1:]:
         if arg == "--help":
             fatal_help("Lunabotics controller client script.")
