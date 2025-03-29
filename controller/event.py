@@ -22,15 +22,8 @@ class AxisEvent:
         if not (self.dpad_x() or self.dpad_y()):
             normalized: float
             for axis, info in axis_info:
-                min = info.min
-                max = info.max
-
-                if min < 0:
-                    min += abs(info.min)
-                    max += min
-
                 if axis == code:
-                    normalized = (value / max) * 255
+                    normalized = ((value - info.min) / (info.max - info.min)) * 255
                     break
             else:
                 raise IndexError(f"No info available for axis {code}?")
