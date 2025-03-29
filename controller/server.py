@@ -3,56 +3,18 @@ import pickle
 import socket
 import sys
 
-import util
 from event import AxisEvent, ButtonEvent
+from rover_state import RoverState
+import util
+
+state = RoverState()
 
 
 def react_to_event(event: AxisEvent | ButtonEvent):
-    print(event._code)
-    if type(event) is AxisEvent:
-        dpad_action = "released" if event.value() == 1 else "pressed"
-
-        if event.dpad_x():
-            print(f"{dpad_action} dpad x {event.value()}")
-        elif event.dpad_y():
-            print(f"{dpad_action} dpad y {event.value()}")
-        elif event.joy_left_x():
-            print(f"moved left joystick x {event.value()}")
-        elif event.joy_left_y():
-            print(f"moved left joystick y {event.value()}")
-        elif event.joy_right_x():
-            print(f"moved right joystick x {event.value()}")
-        elif event.joy_right_y():
-            print(f"moved right joystick y {event.value()}")
-        elif event.pressure_ltrigger():
-            print(f"moved left trigger pressure {event.value()}")
-        elif event.pressure_rtrigger():
-            print(f"moved right trigger pressure {event.value()}")
-    elif type(event) is ButtonEvent:
-        action = "pressed" if event.value() == 1 else "released"
-
-        if event.button_north():
-            print(f"{action} north button")
-        elif event.button_east():
-            print(f"{action} east button")
-        elif event.button_south():
-            print(f"{action} south button")
-        elif event.button_west():
-            print(f"{action} west button")
-        elif event.button_lbumper():
-            print(f"{action} left bumper")
-        elif event.button_rbumper():
-            print(f"{action} right bumper")
-        elif event.button_ltrigger():
-            print(f"{action} left trigger")
-        elif event.button_rtrigger():
-            print(f"{action} right trigger")
-        elif event.button_select():
-            print(f"{action} select")
-        elif event.button_start():
-            print(f"{action} start")
-    else:
-        print("idk bruh")
+    # print(event._code) # debug
+    state.take_event(event)
+    print(state)
+    # TODO: send data to arduino using state.get_arduino_data()
 
 
 def try_handle_client(client_socket: socket.socket):
