@@ -39,10 +39,10 @@ class RoverState:
         self._controller_state[DPAD_Y] = 0
         self._controller_state[BUMPER_LEFT] = 0
         self._controller_state[BUMPER_RIGHT] = 0
-        self._controller_state[JOY_LEFT_X] = 0
-        self._controller_state[JOY_LEFT_Y] = 0
-        self._controller_state[JOY_RIGHT_X] = 0
-        self._controller_state[JOY_RIGHT_Y] = 0
+        self._controller_state[JOY_LEFT_X] = 127  # assume joysticks are centered.
+        self._controller_state[JOY_LEFT_Y] = 127
+        self._controller_state[JOY_RIGHT_X] = 127
+        self._controller_state[JOY_RIGHT_Y] = 127
         self._controller_state[TRIGGER_LEFT] = 0
         self._controller_state[TRIGGER_RIGHT] = 0
         self._controller_state[SELECT] = 0
