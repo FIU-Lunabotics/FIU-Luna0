@@ -110,7 +110,6 @@ if __name__ == "__main__":
             try:
                 connect_to_server(client_socket, server_ip, server_port)
                 print("Oops! Connection lost.")
-                client_socket.shutdown(socket.SHUT_RDWR)
             except ConnectionRefusedError:
                 print("Oops, connection was refused, is the server up?")
             except ConnectionResetError:
