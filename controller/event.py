@@ -34,7 +34,7 @@ class AxisEvent:
         self._value = int(normalized)
         self._code = code
 
-    def value(self) -> float:
+    def value(self) -> int:
         """
         Returns a value from 0 to 255, 127 being the center.
         """
@@ -114,3 +114,9 @@ class ButtonEvent:
 
     def button_start(self) -> bool:
         return self._code == ecodes.ecodes["BTN_START"]
+
+    def button_lstick(self) -> bool:
+        return self._code == ecodes.ecodes["BTN_THUMBL"]
+
+    def button_rstick(self) -> bool:
+        return self._code == ecodes.ecodes["BTN_THUMBR"]
