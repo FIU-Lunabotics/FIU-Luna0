@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import pickle
+import serial
 import socket
 import sys
 
@@ -8,13 +9,14 @@ from rover_state import RoverState
 import util
 
 state = RoverState()
+arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
 
 
 def react_to_event(event: AxisEvent | ButtonEvent):
     # print(event._code) # debug
     state.take_event(event)
     print(state)
-    # TODO: send data to arduino using state.get_arduino_data()
+    arduino.write(state.get_arduino_data())
 
 
 def try_handle_client(client_socket: socket.socket):
