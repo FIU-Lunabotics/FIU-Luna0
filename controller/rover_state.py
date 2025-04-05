@@ -54,21 +54,21 @@ class RoverState:
 
     def get_arduino_data(self) -> bytes:
         """
-        Will return a bytes object of size 8 in the format (padded if empty):
-        [tank_mode, joy_left_x, joy_left_y, joy_right_x, joy_right_y]
+        Will return a bytes object of size 8 in the format:
+        [255, bitmask, joy_left_x, joy_left_y, joy_right_x, joy_right_y, 0, 255]
         """
         state = self._controller_state
+        bitmask = int(self._tank_mode)  # for now
         return bytes(
             [
-                self._tank_mode,
-                state["JOY_LEFT_X"],
-                state["JOY_LEFT_Y"],
-                state["JOY_RIGHT_X"],
-                state["JOY_RIGHT_Y"],
-                # placeholders to pack to 8 bytes:
-                0,  # this one should be the conveyor
-                0,  # and this the dumping?
-                0,
+                255,
+                bitmask,
+                state[JOY_LEFT_X],
+                state[JOY_LEFT_Y],
+                state[JOY_RIGHT_X],
+                state[JOY_RIGHT_Y],
+                0,  # placeholder
+                255,
             ]
         )
 
