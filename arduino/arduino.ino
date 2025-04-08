@@ -77,7 +77,7 @@ public:
 PiData data; // new instance of PiData class to store our latest data
 
 void setup() {
-  Serial.begin(115200); // Start serial communication
+  Serial.begin(9600); // Start serial communication
 }
 
 void loop(){
