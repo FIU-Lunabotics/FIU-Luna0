@@ -12,6 +12,36 @@ int diff_speed = 0.6;
 int positive_deadzone = 5
 int negative_deadzone = -5
 
+//controller input
+// int left_x = 0;
+// int left_y = 0;
+// int right_x = 0;
+// int right_y = 0;
+// int left_stick = 0;
+// int right_stick = 0;
+// int dpad_x = 0;
+// int dpad_y = 0;
+// int left_trigger = 0;
+// int right_trigger = 0;
+// int select = 0;
+// int start = 0;
+int north_button = 0;
+int east_button = 0;
+int south_button = 0;
+int west_button = 0;
+int left_bumper = 0;
+int right_bumper = 0;
+bool tank_drive_mode = true;
+
+//bm = bitmasks
+int south_button_bm = 0b00000100
+int east_button_bm = 0b00000010 
+int west_button_bm = 0b00000001
+int north_button_bm = 0b10000000
+int right_bumper_bm = 0b01000000
+int left_bumper_bm = 0b00100000
+
+
 class PiData {
 private:
   byte start_byte;
@@ -42,7 +72,7 @@ public:
       count += 1;
       return -1;
     }
-    elif (barr[0]>>6 != count || barr[PACKET_SIZE - 1]>>6 != count) {
+    elif (barr[0]>>6 != count || barr[PACKET_SIZE - 1]&0b00000011 != count) {
       Serial.print("ERROR: First and last byte Identifier are not "); Serial.print(count); Serial.print(". Skipping\n");
       count += 1;
       return -1;
@@ -68,10 +98,14 @@ public:
   }
 
   // Access methods
-  byte get_tank_mode() { return this->tank_mode; }
+  byte get_south_button() { return if(this->start_byte&south_button_bm); }
+  byte get_east_button() { return if(this->start_byte&east_button_bm); }
+  byte get_west_button() { return if(this->start_byte&west_button_bm); }
+  byte get_north_button() { return if(this->end_byte&north_button_bm); }
+  byte get_left_bumper() { return if(this->end_byte&left_bumper_bm); }
+  byte get_right_bumper() { return if(this->end_byte&right_bumper_bm)4; }
   byte get_joy_left_x() { return this->joy_left_x; }
   byte get_joy_left_y() { return this->joy_left_y; }
-  byte get_joy_right_x() { return this->joy_right_x; }
   byte get_joy_right_y() { return this->joy_right_y; }
 };
 
