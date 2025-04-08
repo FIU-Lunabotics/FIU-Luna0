@@ -9,6 +9,8 @@ CytronMD front_right(PWM_DIR, 6, 7);
 CytronMD back_right(PWM_DIR, 9, 8);
 int count = 0;
 int diff_speed = 0.6;
+int positive_deadzone = 5
+int negative_deadzone = -5
 
 class PiData {
 private:
@@ -89,6 +91,13 @@ void tank_drive(const PiData& data) {
   int left_pwm = map(data.get_joy_left_y(), 0, 255, -255, 255);     // Map joystick values (-min to max) to the PWM range (-255 to 255)
   int right_pwm = map(data.get_joy_right_y(), 0, 255, -255, 255);
 
+  if (negative_deadzone < left_pwm < positive_deadzone) {
+    left_pwm = 0;
+  }
+  if (negative_deadzone < right_pwm < positive_deadzone) {
+    left_pwm = 0;
+  }
+
   front_left.setSpeed(left_pwm);    // Set motors speeds
   back_left.setSpeed(left_pwm);
   front_right.setSpeed(right_pwm);
@@ -99,10 +108,17 @@ void differential_steering(const PiData& data) {
   int left_speed = map(data.get_joy_left_y(), 0, 255, -255, 255);   // Speed for left motors (same for both)
   int right_speed = map(data.get_joy_right_y(), 0, 255, -255, 255);
 
+  if (negative_deadzone < left_pwm < positive_deadzone) {
+    left_pwm = 0;
+  }
+  if (negative_deadzone < right_pwm < positive_deadzone) {
+    left_pwm = 0;
+  }
+  
   // Adjust speeds based on right_x (turning)
-  if (left_x > 5) {
+  if (left_x > positive_deadzone) {
     right_speed *= diff_speed;        // Move right motors slower when joystick is moved right
-  } else if (right_x < -5) {
+  } else if (right_x < negative_deadzone) {
     left_speed *= diff_speed;         // Move left motors slower when joystick is moved left
   }
 
