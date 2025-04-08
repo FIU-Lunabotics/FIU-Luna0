@@ -9,7 +9,7 @@ from rover_state import RoverState
 import util
 
 state = RoverState()
-arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
+arduino = serial.Serial(port="/dev/ttyACM0", baudrate=9600, timeout=0.1)
 
 
 def react_to_event(event: AxisEvent | ButtonEvent):
