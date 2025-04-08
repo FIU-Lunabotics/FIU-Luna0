@@ -86,8 +86,8 @@ void loop(){
 }
 
 void tank_drive(const PiData& data) {
-  int left_pwm = map(data.get_joy_left_x(), 0, 255, -255, 255);     // Map joystick values (-min to max) to the PWM range (-255 to 255)
-  int right_pwm = map(data.get_joy_left_y(), 0, 255, -255, 255);
+  int left_pwm = map(data.get_joy_left_y(), 0, 255, -255, 255);     // Map joystick values (-min to max) to the PWM range (-255 to 255)
+  int right_pwm = map(data.get_joy_right_y(), 0, 255, -255, 255);
 
   front_left.setSpeed(left_pwm);    // Set motors speeds
   back_left.setSpeed(left_pwm);
@@ -96,19 +96,13 @@ void tank_drive(const PiData& data) {
 }
 
 void differential_steering(const PiData& data) {
-  int left_x = map(data.get_joy_left_x(), 0, 255, -255, 255);
-  int left_y = map(data.get_joy_left_y(), 0, 255, -255, 255);
-  int right_x = map(data.get_joy_right_x(), 0, 255, -255, 255);
-  int right_y = map(data.get_joy_right_y(), 0, 255, -255, 255);
-
-  // Speed variables for both sides
   int left_speed = map(data.get_joy_left_y(), 0, 255, -255, 255);   // Speed for left motors (same for both)
   int right_speed = map(data.get_joy_right_y(), 0, 255, -255, 255);
 
   // Adjust speeds based on right_x (turning)
-  if (right_x > 0) {
+  if (left_x > 5) {
     right_speed *= diff_speed;        // Move right motors slower when joystick is moved right
-  } else if (right_x < 0) {
+  } else if (right_x < -5) {
     left_speed *= diff_speed;         // Move left motors slower when joystick is moved left
   }
 
