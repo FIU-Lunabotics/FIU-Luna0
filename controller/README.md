@@ -15,16 +15,29 @@ server.py --help
 ### Collect
 
 - From client
-  - Receive Axis and Button events
-- From camera (TODO)
-  - Get stream
+  - Axis and Button events
 
 ### Disperse
 
-- To client (TODO)
-  - Camera data
-- To Arduinos (TODO)
-  - Events converted into PWM?
+- To Arduinos
+  - Events in the format below
+
+| Byte index | Value                 |
+| ---------- | --------------------- |
+| 0          | 255                   |
+| 1          | [Bitmask1](#bitmask1) |
+| 2          | Joystick Left X       |
+| 3          | Joystick Left Y       |
+| 4          | Joystick Right X      |
+| 5          | Joystick Right Y      |
+| 6          | 0 (_Placeholder_)     |
+| 7          | 255                   |
+
+#### Bitmask1
+
+| Bit index | Value     |
+| --------- | --------- |
+| 0         | Tank mode |
 
 ## `client.py`
 
