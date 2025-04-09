@@ -11,6 +11,7 @@ int count = 0;
 int diff_speed = 0.6;
 int positive_deadzone = 5
 int negative_deadzone = -5
+bool temp_tank_button = 0
 
 //controller input
 // int left_x = 0;
@@ -124,7 +125,8 @@ void setup() {
 
 void loop(){
   data.update();
-  if (tank_drive_button == 1){!tank_drive_mode};
+  if (tank_drive_button == 1 && temp_tank_button == 0){!tank_drive_mode};
+  temp_tank_button = tank_drive_button;
   if (tank_drive_mode == 1){
     tank_drive(data);
   }
@@ -152,21 +154,20 @@ void tank_drive(const PiData& data) {
 }
 
 void differential_drive(const PiData& data) {
-  int left_speed = map(data.get_joy_left_y(), 0, 255, -255, 255);   // Speed for left motors (same for both)
-  int right_speed = map(data.get_joy_right_y(), 0, 255, -255, 255);
-
+  int left_pwm = map(data.get_joy_left_y(), 0, 255, -255, 255);   // Speed for left motors (same for both)
+  int left_x   = map(data.get_joy_left_x(), 0, 255, -255, 255);
+  
   if (negative_deadzone < left_pwm < positive_deadzone) {
     left_pwm = 0;
   }
-  if (negative_deadzone < right_pwm < positive_deadzone) {
-    left_pwm = 0;
-  }
+
+  int right_pwm = left_pwm
   
   // Adjust speeds based on right_x (turning)
   if (left_x > positive_deadzone) {
-    right_speed *= diff_speed;        // Move right motors slower when joystick is moved right
-  } else if (right_x < negative_deadzone) {
-    left_speed *= diff_speed;         // Move left motors slower when joystick is moved left
+    right_speed *= diff_speed*(left_x/255);        // Move right motors slower when joystick is moved right
+  } else if (left_x < negative_deadzone) {
+    left_speed *= diff_speed*(left_x/255)*(-1);         // Move left motors slower when joystick is moved left
   }
 
   front_left.setSpeed(left_speed);
