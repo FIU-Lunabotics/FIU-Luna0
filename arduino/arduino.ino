@@ -35,14 +35,14 @@ int (*tank_drive_button)() = data.get_north_button
 bool tank_drive_mode = false;
 
 //bm = bitmasks
-int south_button_bm = 0b00000100;
-int east_button_bm  = 0b00000010;
-int west_button_bm  = 0b00000001;
 int north_button_bm = 0b10000000;
 int right_bumper_bm = 0b01000000;
 int left_bumper_bm  = 0b00100000;
 int start_byte_bm   = 0b00111000;
 int end_byte_bm     = 0b00011100;
+int south_button_bm = 0b00000100;
+int east_button_bm  = 0b00000010;
+int west_button_bm  = 0b00000001;
 
 
 class PiData {
