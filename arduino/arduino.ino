@@ -25,21 +25,24 @@ int negative_deadzone = -5
 // int right_trigger = 0;
 // int select = 0;
 // int start = 0;
-int north_button = 0;
-int east_button = 0;
-int south_button = 0;
-int west_button = 0;
-int left_bumper = 0;
-int right_bumper = 0;
-bool tank_drive_mode = true;
+bool north_button = 0;
+bool east_button = 0;
+bool south_button = 0;
+bool west_button = 0;
+bool left_bumper = 0;
+bool right_bumper = 0;
+int (*tank_drive_button)() = data.get_north_button
+bool tank_drive_mode = false;
 
 //bm = bitmasks
-int south_button_bm = 0b00000100
-int east_button_bm = 0b00000010 
-int west_button_bm = 0b00000001
-int north_button_bm = 0b10000000
-int right_bumper_bm = 0b01000000
-int left_bumper_bm = 0b00100000
+int south_button_bm = 0b00000100;
+int east_button_bm  = 0b00000010;
+int west_button_bm  = 0b00000001;
+int north_button_bm = 0b10000000;
+int right_bumper_bm = 0b01000000;
+int left_bumper_bm  = 0b00100000;
+int start_byte_bm   = 0b00111000;
+int end_byte_bm     = 0b00011100;
 
 
 class PiData {
@@ -77,15 +80,20 @@ public:
       count += 1;
       return -1;
     }
+    elif (barr[0]&start_byte_bm != 0 || barr[PACKET_SIZE - 1]&end_byte_bm != 0) {
+      Serial.print("ERROR: First and last byte spacer isn't 0. Skipping\n");
+      count += 1;
+      return -1;
+    }
     else {
       count += 1;
     }
 
-    this->start_byte = barr[1];
-    this->joy_left_x = barr[2];
-    this->joy_left_y = barr[3];
-    this->joy_right_y = barr[4];
-    this->end_byte = barr[5];
+    this->start_byte = barr[0];
+    this->joy_left_x = barr[1];
+    this->joy_left_y = barr[2];
+    this->joy_right_y = barr[3];
+    this->end_byte = barr[4];
 
     Serial.print("Start: "); Serial.print(this->start_byte);
     Serial.print(" lx: "); Serial.print(this->joy_left_x);
@@ -93,17 +101,15 @@ public:
     Serial.print(" ry: "); Serial.print(this->joy_right_y);
     Serial.print("End: "); Serial.print(this->end_byte);
     Serial.print("\n");
-
-    return result;
   }
 
   // Access methods
-  byte get_south_button() { return if(this->start_byte&south_button_bm); }
-  byte get_east_button() { return if(this->start_byte&east_button_bm); }
-  byte get_west_button() { return if(this->start_byte&west_button_bm); }
-  byte get_north_button() { return if(this->end_byte&north_button_bm); }
-  byte get_left_bumper() { return if(this->end_byte&left_bumper_bm); }
-  byte get_right_bumper() { return if(this->end_byte&right_bumper_bm)4; }
+  bool get_south_button() { return if(this->start_byte&south_button_bm); }
+  bool get_east_button() { return if(this->start_byte&east_button_bm); }
+  bool get_west_button() { return if(this->start_byte&west_button_bm); }
+  bool get_north_button() { return if(this->end_byte&north_button_bm); }
+  bool get_left_bumper() { return if(this->end_byte&left_bumper_bm); }
+  bool get_right_bumper() { return if(this->end_byte&right_bumper_bm); }
   byte get_joy_left_x() { return this->joy_left_x; }
   byte get_joy_left_y() { return this->joy_left_y; }
   byte get_joy_right_y() { return this->joy_right_y; }
@@ -118,6 +124,13 @@ void setup() {
 
 void loop(){
   data.update();
+  if (tank_drive_button == 1){!tank_drive_mode};
+  if (tank_drive_mode == 1){
+    tank_drive(data);
+  }
+  else {
+    differential_drive(data);
+  }
   delay(1);
 }
 
@@ -138,7 +151,7 @@ void tank_drive(const PiData& data) {
   back_right.setSpeed(right_pwm);
 }
 
-void differential_steering(const PiData& data) {
+void differential_drive(const PiData& data) {
   int left_speed = map(data.get_joy_left_y(), 0, 255, -255, 255);   // Speed for left motors (same for both)
   int right_speed = map(data.get_joy_right_y(), 0, 255, -255, 255);
 
@@ -161,6 +174,4 @@ void differential_steering(const PiData& data) {
   front_right.setSpeed(right_speed);
   back_right.setSpeed(right_speed);
 }
-
-void 
 
