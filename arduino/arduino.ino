@@ -65,7 +65,6 @@ public:
     this->start_byte = 0b00000000;
     this->joy_left_x = 127; // assume centered
     this->joy_left_y = 127;
-    this->joy_right_x = 127;
     this->joy_right_y = 127;
     this->trigger = 0;
     this->end_byte_byte = 0b00000000;
@@ -80,19 +79,19 @@ public:
     if (count == 3) {
       count = 0;
     }
-    if (result < PACKET_SIZE) {
-      Serial.print("WARN: STDIN is either empty or recieved < than expected bytes\n"); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
+    if (result < PACKET_SIZE+1) {
       count += 1;
       droppedBytes += PACKET_SIZE - result;
       droppedPackets += 1;
+      Serial.print("WARN: STDIN is either empty or recieved < than expected bytes\n"); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
       return -1;
       
     }
     else if (barr[0]&start_byte_bm != 0 || barr[PACKET_SIZE]&end_byte_bm != 0) {
-      Serial.print("ERROR: First and last byte spacer isn't 0."); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
       droppedBytes += 6;
       droppedPackets += 1;
       count += 1;
+      Serial.print("ERROR: First and last byte spacer isn't 0."); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
       return -1;
     }
     else if (barr[0]>>6 != count || barr[PACKET_SIZE]&0b00000011 != count) {
@@ -105,7 +104,6 @@ public:
         droppedBytes +=  barr[0]>>6 - count;
         droppedPackets += 1;
       }
-      count = barr[PACKET_SIZE]&end_byte_bm;
       return -1;
     }
     else {
