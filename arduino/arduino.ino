@@ -75,29 +75,28 @@ public:
   /// returns number of bytes read if successful, else -1
   int32_t update() {
     byte barr[PACKET_SIZE];
-    int32_t result = Serial.readBytes(barr, PACKET_SIZE);
+    int32_t result = Serial.readBytes(barr, PACKET_SIZE+1);
 
     if (count == 3) {
       count = 0;
     }
-    
     if (result < PACKET_SIZE) {
-      Serial.print("WARN: STDIN is either empty or recieved < than expected bytes\n");
+      Serial.print("WARN: STDIN is either empty or recieved < than expected bytes\n"); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
       count += 1;
       droppedBytes += PACKET_SIZE - result;
       droppedPackets += 1;
       return -1;
       
     }
-    else if (barr[0]&start_byte_bm != 0 || barr[PACKET_SIZE - 1]&end_byte_bm != 0) {
-      Serial.print("ERROR: First and last byte spacer isn't 0. Skipping\n");
+    else if (barr[0]&start_byte_bm != 0 || barr[PACKET_SIZE]&end_byte_bm != 0) {
+      Serial.print("ERROR: First and last byte spacer isn't 0."); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
       droppedBytes += 6;
       droppedPackets += 1;
       count += 1;
       return -1;
     }
     else if (barr[0]>>6 != count || barr[PACKET_SIZE]&0b00000011 != count) {
-      Serial.print("ERROR: First and last byte Identifier are not "); Serial.print(count); Serial.print(". Skipping\n");
+      Serial.print("ERROR: First and last byte Identifier are not "); Serial.print(count); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n"); 
       if (count > barr[0]>>6) {
         droppedBytes += 4 - count + barr[0]>>6 + 1;
         droppedPackets += 1;
@@ -106,7 +105,7 @@ public:
         droppedBytes +=  barr[0]>>6 - count;
         droppedPackets += 1;
       }
-      count += 1;
+      count = barr[PACKET_SIZE]&end_byte_bm;
       return -1;
     }
     else {
