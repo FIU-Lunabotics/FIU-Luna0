@@ -60,7 +60,7 @@ private:
   byte joy_left_x;
   byte joy_left_y;
   byte joy_right_y;
-  char trigger;
+  byte trigger;
   byte end_byte;
 
 public:
