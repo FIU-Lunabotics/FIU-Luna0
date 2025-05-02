@@ -23,6 +23,7 @@ BUMPER_LEFT = "LB"
 BUMPER_RIGHT = "RB"
 SELECT = "SELECT"
 START = "START"
+count = 0
 
 
 class RoverState:
@@ -58,17 +59,44 @@ class RoverState:
         [255, bitmask, joy_left_x, joy_left_y, joy_right_x, joy_right_y, 0, 255]
         """
         state = self._controller_state
-        bitmask = int(self._tank_mode)  # for now
+
+        if count == 3:
+            count = 0
+
+        match count:
+            case 0:
+                startByte = 0b00000000
+                endByte = 0b00000000
+            case 1:
+                startByte = 0b01000000
+                endByte = 0b00000001
+            case 2:
+                startByte = 0b10000000
+                endByte = 0b00000010
+            case 3:
+                startByte = 0b11000000
+                endByte = 0b00000011
+        if state[SOUTH]:
+            startByte = startByte | 0b00000100
+        if state[EAST]:
+            startByte = startByte | 0b00000010
+        if state[WEST]:
+            startByte = startByte | 0b00000001
+        if state[NORTH]:
+            endByte = endByte | 0b10000000
+        if state[BUMPER_RIGHT]:
+            endByte = endByte | 0b01000000
+        if state[BUMPER_LEFT]:
+            endByte = endByte | 0b00100000
+        
         return bytes(
             [
-                255,
-                bitmask,
+                startByte,  
                 state[JOY_LEFT_X],
                 state[JOY_LEFT_Y],
-                state[JOY_RIGHT_X],
                 state[JOY_RIGHT_Y],
-                0,  # placeholder
-                255,
+                state[TRIGGER_RIGHT],  
+                endByte,
             ]
         )
 
