@@ -4,7 +4,7 @@ We will have the server (our Raspberry Pi) collecting info from a controller
 client (some laptop) then handles it and sends it to the Arduinos controlling
 our motors and more.
 
-## `server.py`
+## Server (`server.py`)
 
 To configure and see usage run:
 
@@ -15,12 +15,12 @@ server.py --help
 ### Collect
 
 - From client
-  - Axis and Button events
+  - Current rover control state
 
 ### Disperse
 
 - To Arduinos
-  - Events in the format below
+  - The current state formatted as below
 
 | Byte index | Value                 |
 | ---------- | --------------------- |
@@ -39,7 +39,7 @@ server.py --help
 | --------- | --------- |
 | 0         | Tank mode |
 
-## `client.py`
+## Client (`client.py`)
 
 To configure server IP/port and see usage run:
 
@@ -50,10 +50,11 @@ client.py --help
 ### Read / Process
 
 - Controller events from evdev
-- Controller config (deadzone, button layout) (maybe)
+- Update current state on each input event
+- TODO: Controller config (deadzone, button layout) (maybe)
 
 ### Send
 
 - To server
-  - Send standardized Axis and Button events
+  - Send the latest state
     [serialized](https://en.wikipedia.org/wiki/Serialization) through pickle
