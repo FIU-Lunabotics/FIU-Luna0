@@ -1,4 +1,4 @@
-"""class that keeps track of the current self.state of the Rover"""
+"""class that keeps track of the current state of the Rover"""
 
 import json
 
