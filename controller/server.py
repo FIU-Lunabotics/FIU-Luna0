@@ -34,7 +34,11 @@ def try_handle_client(client_socket: socket.socket):
         if not data:  # did not receive any data, server prob closed
             break
 
-        state = pickle.loads(data)
+        try:
+            state = pickle.loads(data)
+        except pickle.UnpicklingError:
+            print("ERROR: Failed to unpickle, maybe broken packet? Skipping")
+            continue
 
         # send final resulting state to Arduino
         if arduino:
