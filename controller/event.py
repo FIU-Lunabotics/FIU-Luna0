@@ -16,25 +16,21 @@ class AxisEvent:
         Converts the given data into a normalized axis event, giving values only
         from 0 to 255.
         """
-        normalized: float
-        for axis, info in axis_info:
-            min = info.min
-            max = info.max
-
-            if min < 0:
-                min += abs(info.min)
-                max += min
-
-            if axis == code:
-                normalized = (value / max) * 255
-                break
-        else:
-            raise IndexError(f"No info available for axis {code}?")
-
-        self._value = int(normalized)
         self._code = code
+        self._value = value
 
-    def value(self) -> float:
+        if not (self.dpad_x() or self.dpad_y()):
+            normalized: float
+            for axis, info in axis_info:
+                if axis == code:
+                    normalized = ((value - info.min) / (info.max - info.min)) * 255
+                    break
+            else:
+                raise IndexError(f"No info available for axis {code}?")
+
+            self._value = int(normalized)
+
+    def value(self) -> int:
         """
         Returns a value from 0 to 255, 127 being the center.
         """
@@ -114,3 +110,9 @@ class ButtonEvent:
 
     def button_start(self) -> bool:
         return self._code == ecodes.ecodes["BTN_START"]
+
+    def button_lstick(self) -> bool:
+        return self._code == ecodes.ecodes["BTN_THUMBL"]
+
+    def button_rstick(self) -> bool:
+        return self._code == ecodes.ecodes["BTN_THUMBR"]

@@ -5,7 +5,6 @@ import time
 import pickle
 
 import evdev
-from evdev import events
 
 import util
 from util import COALESCE_MS
@@ -19,7 +18,7 @@ def read_joystick(c_socket: socket.socket):
         device = evdev.InputDevice(path)
         # check if device has axis movement (joysticks)
         capabilities = device.capabilities(absinfo=False)
-        if events.EV_ABS in capabilities and events.EV_KEY in capabilities:
+        if evdev.ecodes.EV_ABS in capabilities and evdev.ecodes.EV_KEY in capabilities:
             controller = device
             break
     else:
@@ -27,14 +26,14 @@ def read_joystick(c_socket: socket.socket):
 
     print(f"Controller found: {controller.name}")
 
-    axis_info = controller.capabilities(absinfo=True)[events.EV_ABS]
+    axis_info = controller.capabilities(absinfo=True)[evdev.ecodes.EV_ABS]
     last_abs_usec = 0  # use to ignore absolute events that happen too quick
     for event in controller.read_loop():
-        if event.type == events.EV_ABS and (
+        if event.type == evdev.ecodes.EV_ABS and (
             event.usec > last_abs_usec + COALESCE_MS or event.usec < last_abs_usec
         ):
             event = AxisEvent(event.code, event.value, axis_info)  # type:ignore
-        elif event.type == events.EV_KEY:
+        elif event.type == evdev.ecodes.EV_KEY:
             event = ButtonEvent(event.code, event.value)
         else:
             continue
@@ -110,7 +109,6 @@ if __name__ == "__main__":
             try:
                 connect_to_server(client_socket, server_ip, server_port)
                 print("Oops! Connection lost.")
-                client_socket.shutdown(socket.SHUT_RDWR)
             except ConnectionRefusedError:
                 print("Oops, connection was refused, is the server up?")
             except ConnectionResetError:
