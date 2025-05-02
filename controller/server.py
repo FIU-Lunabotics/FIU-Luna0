@@ -1,32 +1,37 @@
 #!/usr/bin/env python
 import pickle
 import serial
+import serial.serialutil as serialutil
 import socket
 import sys
 
-from event import AxisEvent, ButtonEvent
 from rover_state import RoverState
 import util
 
-state = RoverState()
-arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
-
-
-def react_to_event(event: AxisEvent | ButtonEvent):
-    # print(event._code) # debug
-    state.take_event(event)
-    print(state)
-    arduino.write(state.get_arduino_data())
-
 
 def try_handle_client(client_socket: socket.socket):
+    state = RoverState()
+
+    try:
+        arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
+    except serialutil.SerialException:
+        arduino = None
+        print("No arduino found! Only debugging")
+
     while True:
         data = client_socket.recv(1024)
         if len(data) == 0:  # did not receive any data, server prob closed
             break
 
+        # unpickle event data
         event = pickle.loads(data)
-        react_to_event(event)
+
+        # react to event
+        state.take_event(event)
+        print(state)
+
+        if arduino:
+            arduino.write(state.get_arduino_data())
 
 
 def start_server(server_socket: socket.socket, ip: str, port: int):
