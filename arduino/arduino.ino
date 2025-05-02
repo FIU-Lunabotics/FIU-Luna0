@@ -6,6 +6,10 @@
 int droppedBytes = 0;
 int droppedPackets = 0;
 
+bool corruptData = false;
+bool outOfOrderData = false;
+byte tempbarr[];
+
 CytronMD front_left(PWM_DIR, 3, 2);    //format is (specific h-drive connections), PWM pin, DIR pin
 CytronMD back_left(PWM_DIR, 5, 4);
 CytronMD front_right(PWM_DIR, 6, 7);
@@ -73,41 +77,124 @@ public:
   /// Attempts to read new data from the Pi in input buffer
   /// returns number of bytes read if successful, else -1
   int32_t update() {
+    
     byte barr[PACKET_SIZE];
     int32_t result = Serial.readBytes(barr, PACKET_SIZE+1);
-
+    
     if (count == 3) {
       count = 0;
+    
+    if(corruptData == TRUE){
+      if (result < PACKET_SIZE+1) {
+        corruptData = FALSE
+        outOfOrderData = TRUE
+        count += 1;
+        for(i = 0; i < (sizeof(barr));i++){
+          tempBarr[i] = barr[i];
+        }
+        Serial.print("WARN (CORRUPT): STDIN is either empty or recieved < than expected bytes\n"); Serial.print("\nSkipping and adding to temp\n");
+        return -1;  
+      }
+      else if (barr[0]&start_byte_bm != 0 || barr[PACKET_SIZE]&end_byte_bm != 0) {
+        corruptData = FALSE
+        outOfOrderData = TRUE
+        count += 1;
+        for(i = 0; i < (sizeof(barr));i++){
+          tempBarr[i] = barr[i];
+        }
+        Serial.print("ERROR (CORRUPT): First and last byte spacer isn't 0."); Serial.print("\nSkipping and adding to temp\n");
+        return -1;
+      }
+      else if (barr[0]>>6 != count || barr[PACKET_SIZE]&0b00000011 != count) {
+        corruptData = FALSE
+        outOfOrderData = TRUE
+        count += 1;
+        for(i = 0; i < (sizeof(barr));i++){
+          tempBarr[i] = barr[i];
+        }
+        Serial.print("ERROR (CORRUPT): First and last byte Identifier are not "); Serial.print(count); Serial.print("\nSkipping and adding to temp\n"); 
+        return -1;
+      }
     }
-    if (result < PACKET_SIZE+1) {
-      count += 1;
-      droppedBytes += PACKET_SIZE - result;
-      droppedPackets += 1;
-      Serial.print("WARN: STDIN is either empty or recieved < than expected bytes\n"); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
-      return -1;
+    else if(outOfOrderData == TRUE){
+      byte mergedTemp[];
+
+      byte possibleStartBytes[];
+      byte possibleEndBytes[];
+      int possStartByteIndex[];
+      int possEndByteIndex[];
+      int indexStart = 0;
+      int indexEnd = 0;
+
+      for(i = 0; i < (sizeof(tempBarr));i++){
+          mergedTemp[i] = tempBarr[i];
+        }
+      for(i = 0; i < (sizeof(barr));i++){
+          mergedTemp[i+sizeof(tempBarr)-1] = barr[i];
+        }
       
-    }
-    else if (barr[0]&start_byte_bm != 0 || barr[PACKET_SIZE]&end_byte_bm != 0) {
-      droppedBytes += 6;
-      droppedPackets += 1;
-      count += 1;
-      Serial.print("ERROR: First and last byte spacer isn't 0."); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
-      return -1;
-    }
-    else if (barr[0]>>6 != count || barr[PACKET_SIZE]&0b00000011 != count) {
-      Serial.print("ERROR: First and last byte Identifier are not "); Serial.print(count); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n"); 
-      if (count > barr[0]>>6) {
-        droppedBytes += 4 - count + barr[0]>>6 + 1;
-        droppedPackets += 1;
+      if (mergedTemp < PACKET_SIZE+1) {
+        count += 1;
+        Serial.print("WARN: tempBuff is either empty or recieved < than expected bytes\n"); Serial.print("\nSkipping\n");
+        return -1;  
       }
       else {
-        droppedBytes +=  barr[0]>>6 - count;
-        droppedPackets += 1;
+        for(i = 0; i < sizeof(mergedTemp); i++;){
+          if (mergedTemp[i]&start_byte_bm == 0){
+            possibleStartBytes[indexStart] = mergedTemp[i]
+            possStartByteIndex[indexStart] = i
+            indexStart += 1
+          } 
+          if(i > PACKET_SIZE && mergedTemp[i]&end_byte_bm == 0){
+            possibleEndBytes[indexEnd] = mergedTemp[i]
+            possEndByteIndex[indexEnd] = i
+            indexEnd += 1
+           }
+        }
+        for(i=0; i < sizeof(possibleStartBytes); i++;){
+            for(j=0; j < sizeof(possibleEndBytes); j++;){
+              if(possStartByteIndex[i] + PACKET_SIZE == possEndByteIndex[j] && possibleStartBytes[i]>>6 == possibleEndBytes[j] & 0b00000011){
+                for(z = 0; z <= PACKET_SIZE; z++;){
+                  barr[z] = mergedTemp[z+i];
+                }
+              }
+            }
+          }
+        }
       }
-      return -1;
-    }
-    else {
-      count += 1;
+      else {
+       if (result < PACKET_SIZE+1) {
+        corruptData = TRUE
+        count += 1;
+        droppedBytes += PACKET_SIZE - result;
+        droppedPackets += 1;
+        Serial.print("WARN: STDIN is either empty or recieved < than expected bytes\n"); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
+        return -1;  
+      }
+      else if (barr[0]&start_byte_bm != 0 || barr[PACKET_SIZE]&end_byte_bm != 0) {
+        corruptData = TRUE
+        droppedBytes += 6;
+        droppedPackets += 1;
+        count += 1;
+        Serial.print("ERROR: First and last byte spacer isn't 0."); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
+        return -1;
+      }
+      else if (barr[0]>>6 != count || barr[PACKET_SIZE]&0b00000011 != count) {
+        corruptData = TRUE
+        Serial.print("ERROR: First and last byte Identifier are not "); Serial.print(count); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n"); 
+        if (count > barr[0]>>6) {
+          droppedBytes += 4 - count + barr[0]>>6 + 1;
+          droppedPackets += 1;
+        }
+        else {
+          droppedBytes +=  barr[0]>>6 - count;
+          droppedPackets += 1;
+        }
+        return -1;
+      }
+      else {
+        count += 1;
+      }
     }
 
     this->start_byte = barr[0];
@@ -138,6 +225,7 @@ public:
   byte get_joy_left_x() { return this->joy_left_x; }
   byte get_joy_left_y() { return this->joy_left_y; }
   byte get_joy_right_y() { return this->joy_right_y; }
+  byte get_trigger() { return this->trigger; }
 };
 
 
