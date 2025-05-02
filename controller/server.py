@@ -5,13 +5,12 @@ import serial.serialutil as serialutil
 import socket
 import sys
 
-from rover_state import RoverState
-import util
+import consts
+
+RECV_SIZE = 1024
 
 
 def try_handle_client(client_socket: socket.socket):
-    state = RoverState()
-
     try:
         arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
     except serialutil.SerialException:
@@ -19,19 +18,28 @@ def try_handle_client(client_socket: socket.socket):
         print("No arduino found! Only debugging")
 
     while True:
-        data = client_socket.recv(1024)
-        if len(data) == 0:  # did not receive any data, server prob closed
+        # get all data possible
+        chunks = []
+        while True:
+            chunk = client_socket.recv(RECV_SIZE)
+            if not chunk:  # no data to receive
+                break
+
+            chunks.append(chunk)
+            if len(chunk) < RECV_SIZE:
+                break
+
+        # convert all chunks into one byte array to unpickle
+        data = b"".join(chunks)
+        if not data:  # did not receive any data, server prob closed
             break
 
-        # unpickle event data
-        event = pickle.loads(data)
+        state = pickle.loads(data)
 
-        # react to event
-        state.take_event(event)
-        print(state)
-
+        # send final resulting state to Arduino
         if arduino:
             arduino.write(state.get_arduino_data())
+            print(f"Arduino: {arduino.read_all()}")
 
 
 def start_server(server_socket: socket.socket, ip: str, port: int):
@@ -67,7 +75,7 @@ def fatal_help(message: str):
 
 if __name__ == "__main__":
     ip = "localhost"
-    port = util.DEFAULT_PORT
+    port = consts.DEFAULT_PORT
 
     for arg in sys.argv[1:]:
         if arg == "--help":
@@ -75,7 +83,7 @@ if __name__ == "__main__":
         elif arg == "--public":
             ip = "0.0.0.0"  # allows external connections
         elif arg.isdigit():
-            if port == util.DEFAULT_PORT:
+            if port == consts.DEFAULT_PORT:
                 port = int(arg)
             else:
                 fatal_help("Cannot set port twice, remove or fix numbers")

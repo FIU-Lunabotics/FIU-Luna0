@@ -2,16 +2,13 @@
 Controller event abstractions
 """
 
-from evdev import ecodes, AbsInfo
-from typing import Tuple
+from evdev import ecodes
 
 # dict keys are gotten from /usr/include/linux/input-event-codes.h
 
 
 class AxisEvent:
-    def __init__(
-        self, code: int, value: int, axis_info: list[Tuple[int, AbsInfo]]
-    ) -> None:
+    def __init__(self, code: int, value: int, axis_info) -> None:
         """
         Converts the given data into a normalized axis event, giving values only
         from 0 to 255.
