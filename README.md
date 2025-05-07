@@ -7,17 +7,32 @@ Programming Tree for FIU Lunabotics Rover
 Make sure you have:
 
 - Linux, as the controller code uses Linux [evdev].
-- Python and Pip installed
+- Python (should have it on most Linux distros)
 
-### Pip
+### Python Virtual Environment
 
-- Install `python3-pip` (or equivalent)
-
-Then run:
+To install dependencies separate from your system, create a virtual environment
+in the folder `.venv`:
 
 ```bash
-pip install --user -r requirements.txt
+python -m venv .venv
 ```
+
+Then activate it like so (must be done every terminal session):
+
+```bash
+source .venv/bin/activate
+```
+
+And finally, install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+> [!TIP]
+> The Python evdev bindings install may fail (at least on Fedora) if you are
+> missing Python.h, to fix this, install `python-devel`
 
 ## Running
 
