@@ -5,41 +5,59 @@ import time
 import pickle
 
 import evdev
-from evdev import events
+import evdev.ecodes as ecodes
 
-import util
-from util import COALESCE_MS
+import consts
+from rover_state import RoverState
 from event import AxisEvent, ButtonEvent
 
+DELAY_US = 5000  # time to delay sending state to server
 
-def read_joystick(c_socket: socket.socket):
+
+def read_joystick(controller: evdev.InputDevice, c_socket: socket.socket):
+    """Reads events from given device, then sends state to given socket"""
+    axis_info = controller.capabilities(absinfo=True)[ecodes.EV_ABS]
+    state = RoverState()  # track current rover state
+
+    last_usec = 0  # track when last event was
+    # update state with each input event received, and send latest state when enough time
+    # has elapsed, to not overload server/arduino
+    for input in controller.read_loop():
+        # create correspoding event object depending on input type
+        match input.type:
+            case ecodes.EV_ABS:  # absolute (joysticks)
+                event = AxisEvent(input.code, input.value, axis_info)
+            case ecodes.EV_KEY:  # key (button)
+                event = ButtonEvent(input.code, input.value)
+            case _:  # not an event we care for
+                continue
+
+        state.take_event(event)
+
+        # send current state over when enough time has passed
+        if input.usec > last_usec + DELAY_US or input.usec < last_usec:
+            c_socket.sendall(pickle.dumps(state))
+            last_usec = input.usec
+            print(state)
+
+
+def find_controller() -> evdev.InputDevice:
+    """
+    Selects first device with axis and button capabilities as controller and
+    returns that, otherwise raises FileNotFoundError
+    """
     controller: evdev.InputDevice
-    # select first device with joysticks as controller
     for path in evdev.list_devices():
         device = evdev.InputDevice(path)
         # check if device has axis movement (joysticks)
         capabilities = device.capabilities(absinfo=False)
-        if events.EV_ABS in capabilities and events.EV_KEY in capabilities:
+        if ecodes.EV_ABS in capabilities and ecodes.EV_KEY in capabilities:
             controller = device
             break
-    else:
+    else:  # no controller found!
         raise FileNotFoundError
 
-    print(f"Controller found: {controller.name}")
-
-    axis_info = controller.capabilities(absinfo=True)[events.EV_ABS]
-    last_abs_usec = 0  # use to ignore absolute events that happen too quick
-    for event in controller.read_loop():
-        if event.type == events.EV_ABS and (
-            event.usec > last_abs_usec + COALESCE_MS or event.usec < last_abs_usec
-        ):
-            event = AxisEvent(event.code, event.value, axis_info)  # type:ignore
-        elif event.type == events.EV_KEY:
-            event = ButtonEvent(event.code, event.value)
-        else:
-            continue
-
-        c_socket.sendall(pickle.dumps(event))
+    return controller
 
 
 def connect_to_server(c_socket: socket.socket, ip: str, port: int):
@@ -53,7 +71,10 @@ def connect_to_server(c_socket: socket.socket, ip: str, port: int):
     first_fail = True
     while True:  # preferred over recursively calling to avoid stack overflow
         try:
-            read_joystick(c_socket)
+            controller = find_controller()
+            print(f"Controller found: {controller.name}")
+
+            read_joystick(controller, c_socket)
         except FileNotFoundError:
             if first_fail:
                 print("Controller not found, connect pls.")
@@ -87,7 +108,7 @@ def fatal_help(message: str):
 
 if __name__ == "__main__":
     server_ip = "localhost"
-    server_port = util.DEFAULT_PORT
+    server_port = consts.DEFAULT_PORT
 
     for arg in sys.argv[1:]:
         if arg == "--help":
@@ -110,7 +131,6 @@ if __name__ == "__main__":
             try:
                 connect_to_server(client_socket, server_ip, server_port)
                 print("Oops! Connection lost.")
-                client_socket.shutdown(socket.SHUT_RDWR)
             except ConnectionRefusedError:
                 print("Oops, connection was refused, is the server up?")
             except ConnectionResetError:
