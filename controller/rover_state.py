@@ -60,7 +60,7 @@ class RoverState:
         state = self._controller_state
         bitmask = int(self._tank_mode)  # for now
         return bytes(
-            [ # CHANGE TO MATCH ARDUINO DATA RECIEVE
+            [ # CHANGE TO MATCH ARDUINO DATA RECIEVES
                 255,
                 bitmask,
                 state[JOY_LEFT_X],
