@@ -20,7 +20,7 @@ private:
   byte joy_right_x;
   byte joy_right_y;
   byte dX;
-  byte dY;
+  byte dY; //cCHANGE TO MATCH PYTHON 
 
 public:
   /// Constructs a new empty PiData object
