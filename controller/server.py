@@ -1,68 +1,49 @@
 #!/usr/bin/env python
 import pickle
+import serial
+import serial.serialutil as serialutil
 import socket
 import sys
 
-import util
-from event import AxisEvent, ButtonEvent
+import consts
 
-
-def react_to_event(event: AxisEvent | ButtonEvent):
-    print(event._code)
-    if type(event) is AxisEvent:
-        dpad_action = "released" if event.value() == 1 else "pressed"
-
-        if event.dpad_x():
-            print(f"{dpad_action} dpad x {event.value()}")
-        elif event.dpad_y():
-            print(f"{dpad_action} dpad y {event.value()}")
-        elif event.joy_left_x():
-            print(f"moved left joystick x {event.value()}")
-        elif event.joy_left_y():
-            print(f"moved left joystick y {event.value()}")
-        elif event.joy_right_x():
-            print(f"moved right joystick x {event.value()}")
-        elif event.joy_right_y():
-            print(f"moved right joystick y {event.value()}")
-        elif event.pressure_ltrigger():
-            print(f"moved left trigger pressure {event.value()}")
-        elif event.pressure_rtrigger():
-            print(f"moved right trigger pressure {event.value()}")
-    elif type(event) is ButtonEvent:
-        action = "pressed" if event.value() == 1 else "released"
-
-        if event.button_north():
-            print(f"{action} north button")
-        elif event.button_east():
-            print(f"{action} east button")
-        elif event.button_south():
-            print(f"{action} south button")
-        elif event.button_west():
-            print(f"{action} west button")
-        elif event.button_lbumper():
-            print(f"{action} left bumper")
-        elif event.button_rbumper():
-            print(f"{action} right bumper")
-        elif event.button_ltrigger():
-            print(f"{action} left trigger")
-        elif event.button_rtrigger():
-            print(f"{action} right trigger")
-        elif event.button_select():
-            print(f"{action} select")
-        elif event.button_start():
-            print(f"{action} start")
-    else:
-        print("idk bruh")
+RECV_SIZE = 1024
 
 
 def try_handle_client(client_socket: socket.socket):
+    try:
+        arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
+    except serialutil.SerialException:
+        arduino = None
+        print("No arduino found! Only debugging")
+
     while True:
-        data = client_socket.recv(1024)
-        if len(data) == 0:  # did not receive any data, server prob closed
+        # get all data possible
+        chunks = []
+        while True:
+            chunk = client_socket.recv(RECV_SIZE)
+            if not chunk:  # no data to receive
+                break
+
+            chunks.append(chunk)
+            if len(chunk) < RECV_SIZE:
+                break
+
+        # convert all chunks into one byte array to unpickle
+        data = b"".join(chunks)
+        if not data:  # did not receive any data, server prob closed
             break
 
-        event = pickle.loads(data)
-        react_to_event(event)
+        try:
+            state = pickle.loads(data)
+        except pickle.UnpicklingError:
+            print("ERROR: Failed to unpickle, maybe broken packet? Skipping")
+            continue
+
+        # send final resulting state to Arduino
+        if arduino:
+            arduino.write(state.get_arduino_data())
+            print(f"Arduino: {arduino.read_all()}")
 
 
 def start_server(server_socket: socket.socket, ip: str, port: int):
@@ -98,7 +79,7 @@ def fatal_help(message: str):
 
 if __name__ == "__main__":
     ip = "localhost"
-    port = util.DEFAULT_PORT
+    port = consts.DEFAULT_PORT
 
     for arg in sys.argv[1:]:
         if arg == "--help":
@@ -106,7 +87,7 @@ if __name__ == "__main__":
         elif arg == "--public":
             ip = "0.0.0.0"  # allows external connections
         elif arg.isdigit():
-            if port == util.DEFAULT_PORT:
+            if port == consts.DEFAULT_PORT:
                 port = int(arg)
             else:
                 fatal_help("Cannot set port twice, remove or fix numbers")
