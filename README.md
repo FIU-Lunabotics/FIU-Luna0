@@ -13,7 +13,7 @@ On Controller
 On Server
 - Linux, just the same
 - Python, just the same
-- Visual Studio Code with PlatformIO installed (make sure to open folder through PIO Home as project) onto the SERVER
+- Visual Studio Code with [PlatformIO] installed (make sure to open folder through PIO Home as project) onto the SERVER
 - VS Code, Coderunner extension
 
 Connect the Arduino Mega 2560 to the Raspberry Pi 5 via USB as we use Serial input and the USB is the power source. 
