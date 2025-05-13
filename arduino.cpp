@@ -3,14 +3,14 @@
 
 #define PACKET_SIZE 5 // size of packet read from pi in bytes
 
-CytronMD front_left(PWM_DIR, 3, 2);    //format is (specific h-drive connections), PWM pin, DIR pin
-CytronMD back_left(PWM_DIR, 5, 4);
-CytronMD front_right(PWM_DIR, 6, 7);
-CytronMD back_right(PWM_DIR, 9, 8);
-
-CytronMD digger(PWM_DIR, 13, 12);
-const int linear_actuator_up = 10;
-const int linear_actuator_down = 11;
+#define back_right 2
+#define back_left 3
+#define front_right 4
+#define front_left 5
+#define digger 6
+#define tank__button 7
+#define right_bumper 8
+#define left_bumper 9
 
 //bm = bitmasks
 const int north_button_bm = 0b10000000;
@@ -134,7 +134,12 @@ void get_tank_state(){
     tank_mode = !tank_mode;
   }
   tank_button_temp = tank_button;
-
+  if(tank_mode == true){
+    analogWrite(tank__button, HIGH);
+  } 
+  else{
+    analogWrite(tank__button, LOW);
+  }
 }
 
 void tank_drive(PiData& data) {
@@ -148,10 +153,10 @@ void tank_drive(PiData& data) {
     right_pwm = 0;
   }
 
-  front_left.setSpeed(left_pwm);    // Set motors speeds
-  back_left.setSpeed(left_pwm);
-  front_right.setSpeed(right_pwm);
-  back_right.setSpeed(right_pwm);
+  analogWrite(front_left, left_pwm);    // Set motors speeds
+  analogWrite(back_left, left_pwm);
+  analogWrite(front_right, right_pwm);
+  analogWrite(back_right, right_pwm);
 }
 
 void differential_steering(PiData& data) {
@@ -173,10 +178,10 @@ void differential_steering(PiData& data) {
     left_speed *= map(left_x, -255, 255, 0.6, 1.6 );         // Move left motors slower when joystick is moved left
   }
 
-  front_left.setSpeed(left_speed);
-  back_left.setSpeed(left_speed);
-  front_right.setSpeed(right_speed);
-  back_right.setSpeed(right_speed);
+  analogWrite(front_left, left_speed); 
+  analogWrite(back_left, left_speed);
+  analogWrite(front_right, right_speed);
+  analogWrite(back_right, right_speed);
 }
 
 void digging(PiData& data){
@@ -185,16 +190,16 @@ void digging(PiData& data){
   bool bumper_right = data.get_right_bumper();
 
   if (bumper_left == true) {
-    analogWrite(linear_actuator_down , HIGH);
+    analogWrite(left_bumper, HIGH);
   }
   else {
-    analogWrite(linear_actuator_down , LOW);
+    analogWrite(left_bumper, LOW);
   }
   if (bumper_right == true) {
-    analogWrite(linear_actuator_up, HIGH);
+    analogWrite(right_bumper, HIGH);
   }
   else{
-    analogWrite(linear_actuator_up , LOW);
+    analogWrite(right_bumper, LOW);
   }
-  digger.setSpeed(trigger);
+  analogWrite(digger, trigger);
 }
