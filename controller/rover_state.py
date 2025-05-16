@@ -53,13 +53,8 @@ class RoverState:
     def __str__(self) -> str:
         state = json.dumps(self._controller_state, indent=4)
         # to not trigger issues with the byte order
-        binaryPacket = ""
-        binaryPacketData = self.get_binary_data()
-        for byte in binaryPacketData:
-            binaryPacket += format(byte, '08b')
-            binaryPacket += "\n"
         
-        return f"Binary form of Packet (For debug): {binaryPacket} \nTank mode: {self._tank_mode}\nController state: {state}"
+        return f"Controller state: {state}"
     
     def get_binary_data(self) -> bytes:
         """
