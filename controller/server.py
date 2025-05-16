@@ -44,8 +44,10 @@ def try_handle_client(client_socket: socket.socket):
 
         # send final resulting state to Arduino
         if arduino:
-            print(f"Data sent to Arduino: {state}")
             arduino.write(state.get_arduino_data())
+            data = str(arduino.read_all().decode().strip('\r\n'))
+            print(data)
+            arduino.reset_output_buffer()
             
             
 
