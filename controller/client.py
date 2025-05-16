@@ -11,7 +11,7 @@ import consts
 from rover_state import RoverState
 from event import AxisEvent, ButtonEvent
 
-DELAY_US = 50000  # time to delay sending state to server
+DELAY_US = 30000  # time to delay sending state to server
 
 
 def read_joystick(controller: evdev.InputDevice, c_socket: socket.socket):

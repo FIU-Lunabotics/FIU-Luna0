@@ -16,10 +16,9 @@
 int droppedBytes = 0;
 int droppedPackets = 0;
 
-bool corruptData = false;
 bool outOfOrderData = false;
-byte tempBarr[100];
-int sizeOfTempBarr = 0;
+byte barr[100];
+int sizeOfBarr = 0;
 
 //bm = bitmasks
 const int north_button_bm = 0b10000000;
@@ -65,129 +64,119 @@ class PiData {
       /// Attempts to read new data from the Pi in input buffer
       /// returns number of bytes read if successful, else -1
       int32_t update() {
-        byte barr[PACKET_SIZE];
-        int32_t result = Serial.readBytes(barr, PACKET_SIZE+1);
-    
-        if (corruptData == true){
-          if (result < PACKET_SIZE+1) {
-            corruptData = false;
-            outOfOrderData= true;
-            int i = 0;
-            sizeOfTempBarr = result;
-            for (i =0; i <= result; i++){
-              tempBarr[i] = barr[i];
-              }
-            //Serial.print("ERROR (CORRUPT): First and last byte spacer isn't 0."); Serial.print("\nSkipping and adding to temp\n");
-            return -1;
-            }
-          else if (barr[0] & start_byte_bm != 0b10101000 || barr[PACKET_SIZE]&end_byte_bm != 0b00010101) {
-            corruptData = false;
-            outOfOrderData = true;
-            int i = 0;
-            sizeOfTempBarr = result;
-            for(i = 0; i < result;i++){
-              tempBarr[i] = barr[i];
-            }
-            //Serial.print("ERROR (CORRUPT): First and last byte Spacer are not Correct\nSkipping and adding to temp\n"); 
-            return -1;
-            }
+        byte tempBarr[PACKET_SIZE];
+        int32_t result = Serial.readBytes(tempBarr, PACKET_SIZE+1);
+        int result_ = result;
+        int i = 0;
+
+        for (i = 0; i <= result_; i++){ barr[i+sizeOfBarr] = tempBarr[i];}
+        sizeOfBarr += result_;
+        if (sizeOfBarr < PACKET_SIZE+1){
+          return -1;
           }
-        else if (outOfOrderData == true) {
-          byte mergedTemp[100];
-    
+        else if ((barr[0]&start_byte_bm) == 0b10101000 && (barr[PACKET_SIZE]&end_byte_bm) == 0b00010101){
+          for (i = 0; i < PACKET_SIZE; i++){ tempBarr[i] = barr[i]; }
+          for (i = 0; i <= sizeOfBarr; i++){ barr[i] = 0; }
+          sizeOfBarr = 0;
+        }
+        else {
           byte possibleStartBytes[100];
           byte possibleEndBytes[100];
           int possStartByteIndex[100];
           int possEndByteIndex[100];
           int indexStart = 0;
           int indexEnd = 0;
-          int i=0;
-          int sizeOfMergedTemp = sizeOfTempBarr + result;
-    
-          for(i = 0; i <= sizeOfTempBarr;i++){
-              mergedTemp[i] = tempBarr[i];
-            }
-          for(i = 0; i <= result;i++){
-              mergedTemp[i+sizeOfTempBarr] = barr[i];
-            }
-          if (sizeOfMergedTemp < PACKET_SIZE+1) {
-            //Serial.print("WARN: tempBuff is either empty or recieved < than expected bytes\n"); Serial.print("\nSkipping\n");
-            return -1;  
+
+          for(i = 0; i <= (sizeOfBarr - PACKET_SIZE); i++){
+            if ((barr[i]&start_byte_bm) == 0b10101000){
+              possibleStartBytes[indexStart] = barr[i];
+              possStartByteIndex[indexStart] = i;
+              indexStart += 1;
+            } 
+            if((barr[(i+PACKET_SIZE)]&end_byte_bm) == 0b00010101){
+              possibleEndBytes[indexEnd] = barr[i+PACKET_SIZE];
+              possEndByteIndex[indexEnd] = i+PACKET_SIZE;
+              indexEnd += 1;
+              }
           }
-          else{
-            for(i = 0; i <= sizeOfMergedTemp - 6; i++){
-              if (mergedTemp[i]&start_byte_bm == 0b10101000){
-                possibleStartBytes[indexStart] = mergedTemp[i];
-                possStartByteIndex[indexStart] = i;
-                indexStart += 1;
-              } 
-              if(i > PACKET_SIZE && mergedTemp[i]&end_byte_bm == 0b00010101){
-                possibleEndBytes[indexEnd] = mergedTemp[i];
-                possEndByteIndex[indexEnd] = i;
-                indexEnd += 1;
-               }
-            }
-            int j=0;
-            int z =0;
-            for(i=0; i <= indexStart; i++){
-                  for(j=0; j <= indexEnd; j++){
-                    if(possStartByteIndex[i] + PACKET_SIZE == possEndByteIndex[j]){
-                      int spacer = possStartByteIndex[i];
-                      for(z = 0; z < PACKET_SIZE; z++){
-                        barr[z] = mergedTemp[z+spacer];
-                      }
-                    }
+          int j=0;
+          int z =0;
+          bool foundPacket = false;
+          int spacer = 0;
+          for(i=0; i < indexStart; i++){
+              for(j=0; j < indexEnd; j++){
+                if(possStartByteIndex[i] + PACKET_SIZE == possEndByteIndex[j]){
+                  foundPacket = true;
+                  spacer = possStartByteIndex[i];
+                  for(z = 0; z < PACKET_SIZE; z++){
+                    barr[z] = tempBarr[z+spacer];
                   }
                 }
+              }
+            }
+          if (foundPacket){
+            for (i = 0; i <= (spacer+PACKET_SIZE); i++){
+              barr[i] = 0;
+            }
+            int extra_bytes = sizeOfBarr-spacer+PACKET_SIZE+1;
+            if (extra_bytes != 0){
+              for (i = 0; i<= extra_bytes; i++){
+                barr[i] = barr[(i+(spacer+PACKET_SIZE+1))];
+                barr[(i+(spacer+PACKET_SIZE+1))] = 0;
+              }
+            }
+            sizeOfBarr = extra_bytes;
+          }
+          else { 
+            Serial.print("\nPoss Start Byte Indexs:"); 
+            for(i = 0; i < indexStart; i++){ 
+              Serial.end();
+              Serial.begin(9600);
+              Serial.print(possStartByteIndex[i]);
+              Serial.print("\n");
+            }
+            Serial.print("\n\nPoss End Byte Indexs:"); 
+            for(i = 0; i < indexStart; i++){ 
+              Serial.end();
+              Serial.begin(9600);
+              Serial.print(possStartByteIndex[i]);
+              Serial.print("\n");
+            }
+            Serial.print("\n\nSize of buffer: "); Serial.print(sizeOfBarr);
+            Serial.print("\n\n All Bytes in Barr: ");
+            for(i = 0; i <= sizeOfBarr; i++){
+              Serial.end();
+              Serial.begin(9600);
+              Serial.print("\n\n"); for (int8_t aBit = 7; aBit >= 0; aBit--) Serial.write(bitRead(barr[i], aBit) ? '1' : '0');
+            }
+            Serial.print("\n\nPacket not found.\nSkipping.\n");
+            return -1;
           }
         }
-          
-        else {
-          if (result < PACKET_SIZE+1){
-            corruptData = true;
-            droppedBytes += PACKET_SIZE - result + 1;
-            if (idle == false){
-              //Serial.print("WARN: STDIN is either empty or recieved < than expected bytes\n");
-              idle = true;
-            }
-            return -1;
-          }
-    
-          else if (barr[0] & start_byte_bm != 0b10101000 || barr[PACKET_SIZE] & end_byte_bm != 0b00010101) {
-            corruptData = true;
-            droppedBytes += 6;
-            droppedPackets += 1;
-            //Serial.print("ERROR: First and last byte spacer isn't 0."); Serial.print("\nDropped Packets: "); Serial.print(droppedPackets); Serial.print("\nDropped Bytes: "); Serial.print(droppedBytes); Serial.print("\nSkipping\n");
-            return -1;
-          }
-          else {
-            idle = false;
-          }
-          Serial.end();
-          Serial.begin(9600);
-        }    
-    
-        this->start_byte = barr[0];
-        this->joy_left_x = barr[1];
-        this->joy_left_y = barr[2];
-        this->joy_right_y = barr[3];
-        this->trigger = barr[4];
-        this->end_byte = barr[5];
+
+        this->start_byte = tempBarr[0];
+        this->joy_left_x = tempBarr[1];
+        this->joy_left_y = tempBarr[2];
+        this->joy_right_y = tempBarr[3];
+        this->trigger = tempBarr[4];
+        this->end_byte = tempBarr[5];
     
         return result;
       }
     
       // Access methods
-      int get_south_button() { return this->start_byte&south_button_bm; }
-      int get_east_button() { return this->start_byte&east_button_bm; }
-      int get_west_button() { return this->start_byte&west_button_bm; }
-      int get_north_button() { return this->end_byte&north_button_bm; }
-      int get_left_bumper() { return this->end_byte&left_bumper_bm; }
-      int get_right_bumper() { return this->end_byte&right_bumper_bm; }
+      bool get_south_button() { return this->start_byte&south_button_bm; }
+      bool get_east_button() { return this->start_byte&east_button_bm; }
+      bool get_west_button() { return this->start_byte&west_button_bm; }
+      bool get_north_button() { return this->end_byte&north_button_bm; }
+      bool get_left_bumper() { return this->end_byte&left_bumper_bm; }
+      bool get_right_bumper() { return this->end_byte&right_bumper_bm; }
       int get_joy_left_x() { return this->joy_left_x; }
       int get_joy_left_y() { return map(this->joy_left_y, 0, 255, 255, 0); }
       int get_joy_right_y() { return map(this->joy_right_y, 0, 255, 255, 0); }
       int get_trigger() { return this->trigger; } 
+      int get_start_byte() { return this->start_byte; }
+      int get_end_byte() { return this->end_byte; }
     
     };
 
@@ -207,19 +196,101 @@ void get_tank_state(PiData& data){
   else{ analogWrite(tank__button, 0); }
 }
 
+void tank_drive(PiData& data){
+  int left_pwm = data.get_joy_left_y(); //map(data.get_joy_left_x(), 0, 255, -255, 255);
+  int right_pwm = data.get_joy_right_y(); //map(data.get_joy_left_y(), 0, 255, -255, 255);
+
+  if (negative_deadzone < left_pwm && left_pwm < positive_deadzone){
+    left_pwm = 0;
+  }
+  if (negative_deadzone < right_pwm && right_pwm < positive_deadzone){
+    right_pwm = 0;
+  }
+
+  analogWrite(front_left, left_pwm);    // Set motors speeds
+  analogWrite(back_left, left_pwm);
+  analogWrite(front_right, right_pwm);
+  analogWrite(back_right, right_pwm);
+}
+
+void diff_drive(PiData& data){
+  int left_x = map(data.get_joy_left_x(), 0, 255, -255, 255);
+  int left_y = map(data.get_joy_left_y(), 0, 255, -255, 255);
+
+  if (negative_deadzone < left_y && left_y < positive_deadzone){
+    left_y = 0;
+  }
+
+  int pwm_level = left_y + left_x*0.3;
+  if (pwm_level > 255) { pwm_level = 255; }
+
+  int left_pwm = pwm_level;
+  int right_pwm = pwm_level;
+
+  if (left_x > positive_deadzone){
+    right_pwm *= map(left_x, -255, 255, 1.6, 0.6 );
+  }
+  else if (left_x < negative_deadzone){
+    left_pwm *= map(left_x, -255, 255, 0.6, 1.6 );
+  }
+
+  analogWrite(front_left, left_pwm); 
+  analogWrite(back_left, left_pwm);
+  analogWrite(front_right, right_pwm);
+  analogWrite(back_right, right_pwm);
+}
+
+void digging(PiData& data){
+  bool bumper_left = data.get_left_bumper();
+  bool bumper_right = data.get_right_bumper();
+
+  if (bumper_left && bumper_right) {
+    analogWrite(left_bumper, 0);
+    analogWrite(right_bumper, 0);
+  }
+  else if (bumper_left == true) {
+    analogWrite(left_bumper, 255);
+  }
+  else if (bumper_right == true) {
+    analogWrite(right_bumper, 255);
+  }
+  else {
+    analogWrite(left_bumper, 0);
+    analogWrite(right_bumper, 0);
+  }
+}
+
+
 void loop(){
   data.update();
-  get_tank_state(data);
-}
 
-void tank_drive(){
-
-}
-
-void diff_drive(){
-
-}
-
-void digging(){
+  /*
+  int Byte1 = data.get_start_byte();
+  int Byte2 = data.get_joy_left_x();
+  int Byte3 = data.get_joy_left_y();
+  int Byte4 = data.get_joy_right_y();
+  int Byte5 = data.get_trigger();
+  int Byte6 = data.get_end_byte();
+  Serial.end();
+  Serial.begin(9600);
+  Serial.print("\n\n"); for (int8_t aBit = 7; aBit >= 0; aBit--) Serial.print(bitRead(Byte1, aBit) ? '1' : '0');
+  Serial.print("\n"); for (int8_t aBit = 7; aBit >= 0; aBit--) Serial.print(bitRead(Byte2, aBit) ? '1' : '0');
+  Serial.print("\n"); for (int8_t aBit = 7; aBit >= 0; aBit--) Serial.print(bitRead(Byte3, aBit) ? '1' : '0');
+  Serial.end();
+  Serial.begin(9600);
+  Serial.print("\n"); for (int8_t aBit = 7; aBit >= 0; aBit--) Serial.print(bitRead(Byte4, aBit) ? '1' : '0');
+  Serial.print("\n"); for (int8_t aBit = 7; aBit >= 0; aBit--) Serial.print(bitRead(Byte5, aBit) ? '1' : '0');
+  Serial.print("\n"); for (int8_t aBit = 7; aBit >= 0; aBit--) Serial.print(bitRead(Byte6, aBit) ? '1' : '0'); Serial.print("\n");
   
+  Serial.print("\n");Serial.print("cycle");Serial.print("\n");
+  Serial.end();
+  Serial.begin(9600);
+  */
+
+  get_tank_state(data);
+  if (tank_mode) { tank_drive(data); }
+  else {diff_drive(data);}
+  digging(data);
+  Serial.end();
+  Serial.begin(9600);
 }
