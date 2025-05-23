@@ -13,12 +13,16 @@ RECV_SIZE = 1024
 def try_handle_client(client_socket: socket.socket):
     try:
 <<<<<<< HEAD
+<<<<<<< HEAD
         arduino = serial.Serial(port="/dev/ttyACM0", baudrate=9600, timeout=0.5)
         # flush any byte that could be in buffer at start of communication
         arduino.reset_input_buffer()
 =======
         arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
 >>>>>>> Debug
+=======
+        arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
+>>>>>>> main
     except serialutil.SerialException:
         arduino = None
         print("No arduino found! Only debugging")
@@ -50,6 +54,7 @@ def try_handle_client(client_socket: socket.socket):
         if arduino:
             arduino.write(state.get_arduino_data())
 <<<<<<< HEAD
+<<<<<<< HEAD
             data = str(arduino.read_all().decode().strip('\r\n'))
             print(data)
             arduino.reset_output_buffer()
@@ -58,6 +63,9 @@ def try_handle_client(client_socket: socket.socket):
 =======
             print(f"Arduino: {arduino.read_all()}")
 >>>>>>> Debug
+=======
+            print(f"Arduino: {arduino.read_all()}")
+>>>>>>> main
 
 
 def start_server(server_socket: socket.socket, ip: str, port: int):
