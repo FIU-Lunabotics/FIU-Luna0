@@ -5,16 +5,7 @@ import json
 from typing import OrderedDict
 from event import AxisEvent, ButtonEvent
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-=======
->>>>>>> Debug
-=======
->>>>>>> main
->>>>>>> Debug
 NORTH = "N"
 EAST = "E"
 SOUTH = "S"
@@ -34,16 +25,7 @@ BUMPER_RIGHT = "RB"
 SELECT = "SELECT"
 START = "START"
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
 count = 0
-=======
->>>>>>> Debug
-=======
->>>>>>> main
->>>>>>> Debug
 
 class RoverState:
     def __init__(self):
@@ -70,72 +52,33 @@ class RoverState:
 
     def __str__(self) -> str:
         state = json.dumps(self._controller_state, indent=4)
-<<<<<<< HEAD
         return f"Tank mode: {self._tank_mode}\nController state: {state}"
 
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-        # to not trigger issues with the byte order
-        
-        return f"Controller state: {state}"
-    
-    def get_binary_data(self) -> bytes:
-        """
-        Will return a PACKET FOR DEBUG of size 8 in the format:
-        [255, bitmask, joy_left_x, joy_left_y, joy_right_x, joy_right_y, 0, 255]
-        """
-        state = self._controller_state
-        
-        startByte = 0b10101000
-        endByte   = 0b00010101       
-
-        if state[SOUTH]:
-            startByte = startByte | 0b00000100
-        if state[EAST]:
-            startByte = startByte | 0b00000010
-        if state[WEST]:
-            startByte = startByte | 0b00000001
-        if state[NORTH]:
-            endByte = endByte | 0b10000000
-        if state[BUMPER_RIGHT]:
-            endByte = endByte | 0b01000000
-        if state[BUMPER_LEFT]:
-            endByte = endByte | 0b00100000
-
-        return bytes(
-            [ # CHANGE TO MATCH ARDUINO DATA RECIEVES
-                startByte,
-                state[JOY_LEFT_X],
-                state[JOY_LEFT_Y],
-                state[JOY_RIGHT_Y],
-                state[TRIGGER_RIGHT],
-                endByte
-            ]
-        )
-    
-=======
-        return f"Tank mode: {self._tank_mode}\nController state: {state}"
-
->>>>>>> Debug
-=======
-        return f"Tank mode: {self._tank_mode}\nController state: {state}"
-
->>>>>>> main
->>>>>>> Debug
     def get_arduino_data(self) -> bytes:
         """
         Will return a bytes object of size 8 in the format:
         [255, bitmask, joy_left_x, joy_left_y, joy_right_x, joy_right_y, 0, 255]
         """
         state = self._controller_state
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-        
-        startByte = 0b10101000
-        endByte   = 0b00010101       
+
+        startByte = 0b00101000
+        endByte   = 0b00010100
+
+        if count == 4:
+            count = 0
+
+        if count == 0:
+            startByte = 0b00000000
+            endByte   = 0b00000000
+        elif count == 1:
+            startByte = 0b01000000
+            endByte = 0b00000001
+        elif count == 2:
+            startByte = 0b10000000
+            endByte = 0b00000010
+        elif count == 3:
+            startByte = 0b11000000
+            endByte = 0b00000011
 
         if state[SOUTH]:
             startByte = startByte | 0b00000100
@@ -150,6 +93,8 @@ class RoverState:
         if state[BUMPER_LEFT]:
             endByte = endByte | 0b00100000
 
+        count += 1
+
         return bytes(
             [ # CHANGE TO MATCH ARDUINO DATA RECIEVES
                 startByte,
@@ -158,28 +103,6 @@ class RoverState:
                 state[JOY_RIGHT_Y],
                 state[TRIGGER_RIGHT],
                 endByte
-=======
-=======
->>>>>>> main
->>>>>>> Debug
-        bitmask = int(self._tank_mode)  # for now
-        return bytes(
-            [
-                255,
-                bitmask,
-                state[JOY_LEFT_X],
-                state[JOY_LEFT_Y],
-                state[JOY_RIGHT_X],
-                state[JOY_RIGHT_Y],
-                0,  # placeholder
-                255,
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> Debug
-=======
->>>>>>> main
->>>>>>> Debug
             ]
         )
 
