@@ -66,7 +66,3 @@ need to stop one or the other and reopen during development._
 
 [evdev]: https://en.wikipedia.org/wiki/Evdev
 [arduino-cli]: https://github.com/arduino/arduino-cli
-
-
-
-    test
