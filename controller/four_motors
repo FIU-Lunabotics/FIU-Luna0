@@ -1,0 +1,163 @@
+// PANTHER LUNABOTICS ARDUINO BASED FOUR MOTOR DRIVE
+//--------------------------------------------------
+// Authors: Manuel Garcia, Andres Silva, Carlos Carroz
+// Last Edited: 3/4/2025
+// -------------------------------------------------
+// 
+// Notes: Pinout requires modification 
+//        button logic is not elaborated
+//--------------------------------------------------
+
+//PINOUTS--------------------------------------------------------------------------------------------------------------
+
+//Left Side Motors PINOUT
+const int left_side_right_pwm = 9;
+const int left_side_left_pwm = 6; 
+
+//Right Side Motors PINOUT
+const int right_side_right_pwm = 11;
+const int right_side_left_pwm = 10;
+
+
+//JoyStick PINOUTS
+const int forward_backward_potentiometer = A2; // Forward-backward LEFT potentiometer
+//const int potPinFBR; // Forward-backward RIGHT potentiometer
+const int left_right_potentiometer = A3; // Left-right potentiometer
+
+
+//Control Parameters --------------------------------------------------------------------------------------------------
+
+const int error = 50;
+const int center = 512;
+const int centerHIGH = center + error;
+const int centerLOW = center - error;
+int speed;
+int leftSpeed = 0;
+int rightSpeed = 0;
+
+//FUNCTIONALITY--------------------------------------------------------------------------------------------------------
+void setup() {
+  Serial.begin(9600);
+  
+  //LEFT SIDE MOTORS
+  pinMode(left_side_right_pwm, OUTPUT);
+  pinMode(left_side_left_pwm, OUTPUT);
+  
+  // RIGHT SIDE MOTORS
+  pinMode(right_side_right_pwm, OUTPUT);
+  pinMode(right_side_left_pwm, OUTPUT);
+  
+
+  // POTENTIOMETERS
+  pinMode(forward_backward_potentiometer, INPUT); //used in both tank and diff drive but functionality changes
+//  pinMode(potPinFBR, INPUT);
+  pinMode(left_right_potentiometer, INPUT);
+
+  //BUTTON
+//  pinMode(driveChange, INPUT); //may require INPUT_PULLUP instead
+
+}
+
+
+void stopMotors() {
+  // Stops all motors
+  analogWrite(left_side_right_pwm, 0);
+  analogWrite(left_side_left_pwm, 0);
+  analogWrite(right_side_right_pwm, 0);
+  analogWrite(right_side_left_pwm, 0);
+
+}
+
+void setSide(int right_pwm, int left_pwm, int speed) {
+  bool forward;
+  if (speed > 0) {
+    analogWrite(right_pwm, speed); // Forward
+    analogWrite(left_pwm, 0);
+    forward = true;
+  } else if (speed < 0) {
+    analogWrite(right_pwm, 0);
+    analogWrite(left_pwm, abs(speed)); // Reverse
+    forward = false;
+  } else {
+    analogWrite(right_pwm, 0);
+    analogWrite(left_pwm, 0);
+  }
+}
+
+void diffDrive(int potValDRIVE, int potValTURN){
+  if (abs(center - potValDRIVE) > error) {
+      int driveSpeed;
+    
+    // DRIVING
+      if (potValDRIVE > center) {
+        driveSpeed = map(potValDRIVE, centerHIGH, 1023, 0, 255); // Forward
+      } else {
+        driveSpeed = map(potValDRIVE, 0, centerLOW, -255, 0); // Backward
+      }
+
+      leftSpeed = driveSpeed;
+      rightSpeed = driveSpeed;
+    }
+
+    // TURNING
+    if (abs(center - potValTURN) > error) {
+      int turnSpeed;
+
+      if (potValTURN > center) {
+        turnSpeed = map(potValTURN, centerHIGH, 1023, 0, 255); // Right turn
+      } else {
+        turnSpeed = map(potValTURN, 0, centerLOW, -255, 0); // Left turn
+      }
+
+      leftSpeed += turnSpeed;
+      rightSpeed -= turnSpeed;
+    }
+
+    //Set Speeds
+    leftSpeed = constrain(leftSpeed, -255,255);
+    setSide(left_side_right_pwm, left_side_left_pwm, leftSpeed);
+
+    rightSpeed = constrain(rightSpeed, -255,255);
+    setSide(right_side_right_pwm, right_side_left_pwm, rightSpeed);
+}
+
+void tankDrive(int potValLEFT, int potValRIGHT){
+  
+  if(abs(potValLEFT - center) > error){
+      if(potValLEFT > center){
+        leftSpeed = map(potValLEFT, centerHIGH, 1023, 0, 255); //LEFT FORWARD
+      }else{
+        leftSpeed = map(potValLEFT, 0, centerLOW, -255, 0); //LEFT BACKWARDS
+      }
+  }else{
+    leftSpeed = 0;
+  }
+
+  if(abs(potValRIGHT - center) > error){
+      if(potValRIGHT > center){
+        rightSpeed = map(potValRIGHT, centerHIGH, 1023, 0, 255); //RIGHT FORWARD
+      }else{
+        rightSpeed = map(potValRIGHT, 0, centerLOW, -255, 0); //RIGHT BACKWARDS
+      }
+  }else{
+    rightSpeed = 0; 
+  }
+    leftSpeed = constrain(leftSpeed, -255, 255);
+    setSide(left_side_right_pwm, left_side_left_pwm, leftSpeed);
+
+    rightSpeed = constrain(rightSpeed, -255, 255);
+    setSide(right_side_right_pwm, right_side_left_pwm, rightSpeed);
+}
+
+void loop() {
+  int potValDRIVE = analogRead(forward_backward_potentiometer);
+  int potValTURN = analogRead(left_right_potentiometer);
+
+  Serial.print("Forward/Back: ");
+  Serial.println(potValDRIVE);
+  Serial.print("Right/Left: ");
+  Serial.println(potValTURN);
+
+  diffDrive(potValDRIVE, potValTURN);
+  delay(100);
+}
